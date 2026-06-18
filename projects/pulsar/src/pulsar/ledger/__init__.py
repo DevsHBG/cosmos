@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from pulsar.ledger.movimientos import (
+from pulsar.ledger.movements import (
     LEDGER_TABLE,
     backfill_company,
     current_watermark,

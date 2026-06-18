@@ -13,7 +13,7 @@ import polars as pl
 
 from pulsar.config.settings import Company
 from pulsar.extract.oitw import fetch_oitw
-from pulsar.ledger.movimientos import LEDGER_TABLE
+from pulsar.ledger.movements import LEDGER_TABLE
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
@@ -35,7 +35,7 @@ def reconcile_company(
 
     Returns:
         Frame of mismatches with columns ``item_code``, ``warehouse``,
-        ``qty_recon``, ``qty_sap``, ``diff`` (empty frame == 🟢 camino libre).
+        ``qty_recon``, ``qty_sap``, ``diff`` (empty frame == 🟢 all clear).
     """
     recon = con.execute(
         f"""

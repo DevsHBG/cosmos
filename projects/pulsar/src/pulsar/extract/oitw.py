@@ -53,7 +53,9 @@ def fetch_oitw(company: Company) -> pl.DataFrame:
 
     if not rows:
         return pl.DataFrame(schema={c: pl.Utf8 for c in _OITW_COLUMNS}).clear()
-    return pl.DataFrame(rows, schema=columns, orient="row").with_columns(
+    # hdbcli returns ``pyhdbcli.ResultRow`` objects, which polars does not
+    # recognise as sequences; convert to plain tuples (see ``extract.oinm``).
+    return pl.DataFrame([tuple(r) for r in rows], schema=columns, orient="row").with_columns(
         pl.col("item_code").cast(pl.Utf8),
         pl.col("warehouse").cast(pl.Utf8),
         pl.col("qty_sap").cast(pl.Float64, strict=False),

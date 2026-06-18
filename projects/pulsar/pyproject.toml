@@ -12,6 +12,7 @@ dependencies = [
     "hdbcli>=2.20",
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
+    "pyarrow>=24.0.0",
 ]
 
 [build-system]

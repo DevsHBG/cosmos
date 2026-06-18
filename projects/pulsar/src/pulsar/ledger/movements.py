@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     import polars as pl
     from duckdb import DuckDBPyConnection
 
-LEDGER_TABLE = "ledger_movimientos"
+LEDGER_TABLE = "ledger_movements"
 
 # Earliest movement to consider on a first (empty) load. SAP data starts ~2019;
 # starting from inception yields a correct opening balance (ADR-0002).
@@ -41,6 +41,8 @@ _CREATE_TABLE = f"""
         item_code    VARCHAR,
         warehouse    VARCHAR,
         doc_date     DATE,
+        doc_time     SMALLINT,
+        doc_ts       TIMESTAMP,
         create_date  DATE,
         trans_type   BIGINT,
         base_entry   BIGINT,

@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 
 from pulsar.config.settings import Company
-from pulsar.ledger.movimientos import backfill_company, sync_company
+from pulsar.ledger.movements import backfill_company, sync_company
 from pulsar.ledger.reconcile import reconcile_company
 from pulsar.ledger.store import open_lake
 

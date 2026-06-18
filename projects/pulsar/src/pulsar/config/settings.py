@@ -17,9 +17,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Company(StrEnum):
     """The three SAP Business One company databases pulsar reads from."""
 
-    COMERCIAL = "COMERCIAL"  # CEDIS / fuente de suministro
-    HR = "HR"  # tiendas, marca HR
-    CAP = "CAP"  # tiendas, marcas Caprichos y Elilu
+    COMERCIAL = "COMERCIAL"  # CEDIS / supply source
+    HR = "HR"  # stores, HR brand
+    CAP = "CAP"  # stores, Caprichos and Elilu brands
 
 
 _DEFAULT_SCHEMAS: dict[Company, str] = {

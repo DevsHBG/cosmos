@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from pulsar.ledger.movimientos import _iter_month_windows
+from pulsar.ledger.movements import _iter_month_windows
 
 
 def test_month_windows_are_half_open_and_contiguous() -> None:

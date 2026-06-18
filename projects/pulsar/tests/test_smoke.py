@@ -1,4 +1,4 @@
-"""Smoke test: el paquete importa y expone su versión."""
+"""Smoke test: the package imports and exposes its version."""
 
 import pulsar
 

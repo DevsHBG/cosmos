@@ -26,6 +26,8 @@ LEDGER_COLUMNS: tuple[str, ...] = (
     "item_code",
     "warehouse",
     "doc_date",
+    "doc_time",
+    "doc_ts",
     "create_date",
     "trans_type",
     "base_entry",
@@ -51,12 +53,19 @@ def build_oinm_query(schema: str) -> str:
         Column names (``CreatedBy`` as the source ``DocEntry``, ``BASE_REF``,
         ``DocLineNum``, ``TransValue``) follow standard SAP B1; confirm against
         the live schema if any column raises an error.
+
+        ``DocDate``/``CreateDate`` are stored as ``TIMESTAMP`` but their time is
+        always ``00:00`` in SAP B1; the intraday time lives in ``DocTime``, a
+        ``SMALLINT`` encoded as ``HHMM`` (e.g. ``2340`` → 23:40). It is extracted
+        raw as ``doc_time`` and combined with ``doc_date`` into ``doc_ts``
+        downstream (see :func:`finalize_oinm_frame`).
     """
     return f"""
         SELECT
             M."ItemCode"                 AS "item_code",
             M."Warehouse"                AS "warehouse",
             CAST(M."DocDate"   AS DATE)  AS "doc_date",
+            M."DocTime"                  AS "doc_time",
             CAST(M."CreateDate" AS DATE) AS "create_date",
             M."TransType"                AS "trans_type",
             M."CreatedBy"                AS "base_entry",
@@ -76,7 +85,7 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
 
     ``mov_id`` is a deterministic hash over the natural key. It is an audit
     convenience only; idempotency of loads relies on the create-date window
-    replace strategy (see :mod:`pulsar.ledger.movimientos`), not on ``mov_id``.
+    replace strategy (see :mod:`pulsar.ledger.movements`), not on ``mov_id``.
 
     Args:
         df: Raw frame as returned by the OINM query (one row per posting line).
@@ -89,6 +98,7 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
         pl.col("item_code").cast(pl.Utf8),
         pl.col("warehouse").cast(pl.Utf8),
         pl.col("doc_date").cast(pl.Date),
+        pl.col("doc_time").cast(pl.Int16, strict=False),
         pl.col("create_date").cast(pl.Date),
         pl.col("trans_type").cast(pl.Int64, strict=False),
         pl.col("base_entry").cast(pl.Int64, strict=False),
@@ -97,7 +107,18 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
         pl.col("in_qty").cast(pl.Float64, strict=False),
         pl.col("out_qty").cast(pl.Float64, strict=False),
         pl.col("trans_value").cast(pl.Float64, strict=False),
-    ).with_columns(pl.lit(company.value).alias("company"))
+    ).with_columns(
+        pl.lit(company.value).alias("company"),
+        # doc_ts: business-effective timestamp = doc_date (midnight) + DocTime.
+        # DocTime is HHMM (e.g. 2340 → 23:40); nulls fall back to midnight.
+        (
+            pl.col("doc_date").cast(pl.Datetime("us"))
+            + pl.duration(
+                hours=(pl.col("doc_time") // 100).fill_null(0),
+                minutes=(pl.col("doc_time") % 100).fill_null(0),
+            )
+        ).alias("doc_ts"),
+    )
 
     natural_key = pl.concat_str(
         [
@@ -139,5 +160,8 @@ def fetch_oinm(company: Company, *, since: date, until: date) -> pl.DataFrame:
 
     if not rows:
         return pl.DataFrame(schema={c: pl.Utf8 for c in LEDGER_COLUMNS}).clear()
-    raw = pl.DataFrame(rows, schema=columns, orient="row")
+    # hdbcli returns rows as ``pyhdbcli.ResultRow`` objects, which polars does not
+    # recognise as sequences (it would treat each row as a single scalar). Convert
+    # to plain tuples so polars builds one column per value.
+    raw = pl.DataFrame([tuple(r) for r in rows], schema=columns, orient="row")
     return finalize_oinm_frame(raw, company)
