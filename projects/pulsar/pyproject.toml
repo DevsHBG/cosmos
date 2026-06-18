@@ -1,0 +1,92 @@
+[project]
+name = "pulsar"
+version = "0.1.0"
+description = "Python Utility for Loading, Synthesis, Analysis & Retrieval"
+readme = "README.md"
+requires-python = ">=3.13"
+license = "MIT"
+authors = [{ name = "HBG" }]
+dependencies = [
+    "duckdb>=1.1",
+    "polars>=1.0",
+    "hdbcli>=2.20",
+    "pydantic>=2.7",
+    "pydantic-settings>=2.3",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pulsar"]
+
+# Herramientas de desarrollo del proyecto (PEP 735). Se instalan con `uv sync`
+# y NO se publican como dependencias del paquete.
+[dependency-groups]
+dev = [
+    "mypy>=1.15",
+    "ruff>=0.9",
+    "pytest>=8.3",
+    "pytest-cov>=6.0",
+    "pip-audit>=2.7",
+]
+
+# ---------------------------------------------------------------------------
+# Ruff: linter + formateador (reemplaza Black, Flake8, isort, pyupgrade).
+# ---------------------------------------------------------------------------
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E", "W",   # pycodestyle
+    "F",        # pyflakes
+    "I",        # isort
+    "N",        # pep8-naming
+    "UP",       # pyupgrade
+    "B",        # flake8-bugbear
+    "SIM",      # flake8-simplify
+    "RUF",      # reglas propias de Ruff
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+# ---------------------------------------------------------------------------
+# mypy: type checker de la puerta de CI (estricto).
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.13"
+strict = true
+warn_unreachable = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_error_codes = true
+pretty = true
+
+# hdbcli (driver propietario de SAP) no publica type stubs.
+[[tool.mypy.overrides]]
+module = ["hdbcli.*"]
+ignore_missing_imports = true
+
+# ---------------------------------------------------------------------------
+# pytest + coverage.
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-ra --strict-markers --strict-config"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

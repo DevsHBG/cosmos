@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Entorno virtual (uv lo crea dentro del proyecto)
+.venv/
+
+# Caches de herramientas
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Secretos y datos locales
+.env
+lake/
+
+# NOTA: uv.lock SÍ se versiona (lockfile reproducible del proyecto).

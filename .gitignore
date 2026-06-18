@@ -1,0 +1,10 @@
+# Entradas generales del monorepo (OS / IDE).
+# Cada proyecto bajo projects/* mantiene su propio .gitignore específico.
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
