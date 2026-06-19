@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from pulsar.extract.oinm import LEDGER_COLUMNS, build_oinm_query, fetch_oinm, finalize_oinm_frame
-from pulsar.extract.oitw import fetch_oitw
+from pulsar.sources.oinm import LEDGER_COLUMNS, build_oinm_query, fetch_oinm, finalize_oinm_frame
+from pulsar.sources.oitw import fetch_oitw
 
 __all__ = [
     "LEDGER_COLUMNS",

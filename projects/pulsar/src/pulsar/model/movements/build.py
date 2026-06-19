@@ -21,47 +21,17 @@ from time import perf_counter
 from typing import TYPE_CHECKING
 
 from pulsar.config.settings import Company
-from pulsar.extract.oinm import LEDGER_COLUMNS, fetch_oinm
-from pulsar.ledger.store import open_lake
+from pulsar.model.movements.schema import LEDGER_TABLE, ensure_schema
+from pulsar.sources.oinm import LEDGER_COLUMNS, fetch_oinm
+from pulsar.storage.lake import open_lake
 
 if TYPE_CHECKING:
     import polars as pl
     from duckdb import DuckDBPyConnection
 
-LEDGER_TABLE = "ledger_movements"
-
 # Earliest movement to consider on a first (empty) load. SAP data starts ~2019;
 # starting from inception yields a correct opening balance (ADR-0002).
 FLOOR_DATE = date(2019, 1, 1)
-
-_CREATE_TABLE = f"""
-    CREATE TABLE IF NOT EXISTS {LEDGER_TABLE} (
-        mov_id       UBIGINT,
-        company      VARCHAR,
-        item_code    VARCHAR,
-        warehouse    VARCHAR,
-        doc_date     DATE,
-        doc_time     SMALLINT,
-        doc_ts       TIMESTAMP,
-        create_date  DATE,
-        trans_type   BIGINT,
-        base_entry   BIGINT,
-        base_num     BIGINT,
-        doc_line     BIGINT,
-        in_qty       DOUBLE,
-        out_qty      DOUBLE,
-        trans_value  DOUBLE
-    )
-"""
-
-
-def ensure_schema(con: DuckDBPyConnection) -> None:
-    """Create the ledger table if it does not exist.
-
-    Args:
-        con: An open lakehouse connection.
-    """
-    con.execute(_CREATE_TABLE)
 
 
 def current_watermark(con: DuckDBPyConnection, company: Company) -> date | None:

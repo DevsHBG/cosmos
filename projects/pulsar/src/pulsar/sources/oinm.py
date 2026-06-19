@@ -85,7 +85,7 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
 
     ``mov_id`` is a deterministic hash over the natural key. It is an audit
     convenience only; idempotency of loads relies on the create-date window
-    replace strategy (see :mod:`pulsar.ledger.movements`), not on ``mov_id``.
+    replace strategy (see :mod:`pulsar.model.movements.build`), not on ``mov_id``.
 
     Args:
         df: Raw frame as returned by the OINM query (one row per posting line).

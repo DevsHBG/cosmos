@@ -7,7 +7,7 @@ from datetime import datetime
 import polars as pl
 
 from pulsar.config.settings import Company
-from pulsar.extract.oinm import LEDGER_COLUMNS, build_oinm_query, finalize_oinm_frame
+from pulsar.sources.oinm import LEDGER_COLUMNS, build_oinm_query, finalize_oinm_frame
 
 
 def test_build_oinm_query_targets_schema_and_has_two_params() -> None:

@@ -1,12 +1,12 @@
-"""Phase-1 foundation runner: load the ledger and run the golden validation.
+"""Build and validate the movements ledger: load OINM, then the golden check.
 
 Usage:
     # Initial historical load (chunked by month), then validate:
-    python -m pulsar.pipeline.foundation HR --backfill
+    python -m pulsar.jobs.build_movements HR --backfill
     # Backfill every company up to (excluding) a date, e.g. through yesterday:
-    python -m pulsar.pipeline.foundation ALL --backfill --until 2026-06-18
+    python -m pulsar.jobs.build_movements ALL --backfill --until 2026-06-18
     # Daily incremental sync of every company, then validate:
-    python -m pulsar.pipeline.foundation ALL
+    python -m pulsar.jobs.build_movements ALL
 """
 
 from __future__ import annotations
@@ -17,9 +17,9 @@ from datetime import date
 from pathlib import Path
 
 from pulsar.config.settings import Company
-from pulsar.ledger.movements import backfill_company, sync_company
-from pulsar.ledger.reconcile import reconcile_company
-from pulsar.ledger.store import open_lake
+from pulsar.model.movements.build import backfill_company, sync_company
+from pulsar.model.movements.validate import reconcile_company
+from pulsar.storage.lake import open_lake
 
 DEFAULT_CATALOG = Path("lake/catalog.sqlite")
 DEFAULT_DATA = Path("lake/data")

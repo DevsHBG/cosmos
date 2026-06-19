@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from pulsar.config.settings import Company
-from pulsar.extract.oitw import fetch_oitw
-from pulsar.ledger.movements import LEDGER_TABLE
+from pulsar.model.movements.schema import LEDGER_TABLE
+from pulsar.sources.oitw import fetch_oitw
 
 if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
