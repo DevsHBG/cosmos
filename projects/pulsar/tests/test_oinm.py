@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 import polars as pl
 
 from pulsar.config.settings import Company
-from pulsar.sources.oinm import LEDGER_COLUMNS, build_oinm_query, finalize_oinm_frame
+from pulsar.retail.calendar import from_date
+from pulsar.sources.oinm import MOVEMENT_COLUMNS, build_oinm_query, finalize_oinm_frame
 
 
 def test_build_oinm_query_targets_schema_and_has_two_params() -> None:
@@ -37,7 +38,7 @@ def _raw_frame() -> pl.DataFrame:
 
 def test_finalize_adds_company_and_mov_id_with_expected_columns() -> None:
     out = finalize_oinm_frame(_raw_frame(), Company.HR)
-    assert tuple(out.columns) == LEDGER_COLUMNS
+    assert tuple(out.columns) == MOVEMENT_COLUMNS
     assert out["company"].to_list() == ["HR", "HR"]
     assert out["doc_date"].dtype == pl.Date
     assert out["mov_id"].null_count() == 0
@@ -58,3 +59,13 @@ def test_finalize_mov_id_is_deterministic() -> None:
     a = finalize_oinm_frame(_raw_frame(), Company.HR)
     b = finalize_oinm_frame(_raw_frame(), Company.HR)
     assert a["mov_id"].to_list() == b["mov_id"].to_list()
+
+
+def test_finalize_adds_retail_year_partition_key_from_doc_date() -> None:
+    out = finalize_oinm_frame(_raw_frame(), Company.HR)
+    assert out["retail_year"].dtype == pl.Int16
+    # Partition key is the retail year of doc_date (not the Gregorian year).
+    assert out["retail_year"].to_list() == [
+        from_date(date(2024, 3, 15)).year,
+        from_date(date(2024, 3, 16)).year,
+    ]

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 
+import polars as pl
 import pytest
 
 from pulsar.retail import calendar as rc
@@ -92,6 +93,13 @@ def test_round_trip_every_week_of_2026(offset: int) -> None:
     assert start <= d <= end
     assert start.weekday() == 6  # Sunday
     assert rd.day_of_week == (d - start).days + 1
+
+
+def test_retail_year_expr_matches_from_date_across_years() -> None:
+    # Span 2019 (pre-anchor, negative offsets) through ~2030, off-grid step.
+    dates = [date(2019, 1, 1) + timedelta(days=29 * i) for i in range(150)]
+    got = pl.DataFrame({"d": dates}).select(rc.retail_year_expr("d"))["retail_year"].to_list()
+    assert got == [rc.from_date(d).year for d in dates]
 
 
 def test_invalid_inputs_raise() -> None:

@@ -1,7 +1,7 @@
-"""Build and validate the movements ledger: load OINM, then the golden check.
+"""Build and validate the movements table: load OINM, then the golden check.
 
 Usage:
-    # Initial historical load (chunked by month), then validate:
+    # Initial historical load (chunked by retail year), then validate:
     python -m pulsar.jobs.build_movements HR --backfill
     # Backfill every company up to (excluding) a date, e.g. through yesterday:
     python -m pulsar.jobs.build_movements ALL --backfill --until 2026-06-18
@@ -33,7 +33,6 @@ def run(
     backfill: bool = False,
     since: date | None = None,
     until: date | None = None,
-    step_months: int = 1,
 ) -> int:
     """Load one company (incremental or chunked backfill), then validate.
 
@@ -47,7 +46,6 @@ def run(
             backfill mode, the start date.
         until: Exclusive upper bound (end). Defaults to tomorrow, so passing
             today loads through yesterday.
-        step_months: Backfill window size in months.
 
     Returns:
         Process exit code: ``0`` if the reconstruction matches (🟢), ``1`` if
@@ -61,13 +59,12 @@ def run(
             data_path=data_path,
             start=start,
             end=until,
-            step_months=step_months,
         )
     else:
         rows = sync_company(
             company, catalog_path=catalog_path, data_path=data_path, since=since, until=until
         )
-    print(f"[ledger] {company.value}: {rows} rows written")
+    print(f"[movements] {company.value}: {rows} rows written")
 
     con = open_lake(catalog_path, data_path)
     try:
@@ -96,7 +93,7 @@ def main() -> int:
     if reconfigure is not None:
         reconfigure(encoding="utf-8")
 
-    parser = argparse.ArgumentParser(description="Load the movement ledger and validate it.")
+    parser = argparse.ArgumentParser(description="Load the movements table and validate it.")
     parser.add_argument(
         "company",
         choices=[*(c.value for c in Company), "ALL"],
@@ -112,7 +109,6 @@ def main() -> int:
         default=None,
         help="YYYY-MM-DD exclusive upper bound (end); defaults to tomorrow.",
     )
-    parser.add_argument("--step-months", type=int, default=1, help="Backfill window size (months).")
     parser.add_argument(
         "--catalog", type=Path, default=DEFAULT_CATALOG, help="SQLite catalog path."
     )
@@ -131,7 +127,6 @@ def main() -> int:
                 backfill=args.backfill,
                 since=args.since,
                 until=args.until,
-                step_months=args.step_months,
             ),
         )
     return exit_code

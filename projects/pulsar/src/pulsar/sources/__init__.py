@@ -1,12 +1,12 @@
-"""SAP HANA extractors (raw landing for the ledger and validation)."""
+"""SAP HANA extractors (raw landing for movements and validation)."""
 
 from __future__ import annotations
 
-from pulsar.sources.oinm import LEDGER_COLUMNS, build_oinm_query, fetch_oinm, finalize_oinm_frame
+from pulsar.sources.oinm import MOVEMENT_COLUMNS, build_oinm_query, fetch_oinm, finalize_oinm_frame
 from pulsar.sources.oitw import fetch_oitw
 
 __all__ = [
-    "LEDGER_COLUMNS",
+    "MOVEMENT_COLUMNS",
     "build_oinm_query",
     "fetch_oinm",
     "fetch_oitw",

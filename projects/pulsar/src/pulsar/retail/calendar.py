@@ -25,6 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, timedelta
 
+import polars as pl
+
 #: Alias for the ``date`` type, so the ``RetailDate.date`` field below can keep
 #: its ergonomic name without shadowing the type in its own annotations.
 _Date = date
@@ -277,6 +279,30 @@ def from_date(value: date) -> RetailDate:
         week_start=start,
         week_end=end,
     )
+
+
+# --- Vectorized helpers (polars) -------------------------------------------
+
+
+def retail_year_expr(date_col: str | pl.Expr = "doc_date") -> pl.Expr:
+    """Polars expression for the retail year of a ``Date`` column.
+
+    Vectorized equivalent of ``from_date(d).year``, reusing this module's anchor
+    constants so the calendar stays the single source of truth (the arithmetic is
+    never re-implemented in callers or in SQL). Correct for dates before the
+    anchor (e.g. 2019): integer ``//`` floors toward minus infinity, matching the
+    scalar floor division in :func:`from_date`.
+
+    Args:
+        date_col: Name of (or expression for) the source ``Date`` column.
+
+    Returns:
+        An ``Int16`` expression aliased ``retail_year``.
+    """
+    col = pl.col(date_col) if isinstance(date_col, str) else date_col
+    days_since_anchor = (col - pl.lit(ANCHOR_WEEK1_START)).dt.total_days()
+    year_offset = days_since_anchor // DAYS_PER_YEAR
+    return (year_offset + ANCHOR_YEAR).cast(pl.Int16).alias("retail_year")
 
 
 # --- Validation -------------------------------------------------------------

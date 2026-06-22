@@ -1,4 +1,4 @@
-"""Golden validation: ledger reconstruction vs SAP ``OITW`` current stock.
+"""Golden validation: movements reconstruction vs SAP ``OITW`` current stock.
 
 If the running sum of OINM movements equals current on-hand for every
 (item, warehouse), the reconstruction is trustworthy (ADR-0002). This is the
@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 import polars as pl
 
 from pulsar.config.settings import Company
-from pulsar.model.movements.schema import LEDGER_TABLE
+from pulsar.model.movements.schema import MOVEMENTS_TABLE
 from pulsar.sources.oitw import fetch_oitw
 
 if TYPE_CHECKING:
@@ -25,10 +25,10 @@ def reconcile_company(
     *,
     tolerance: float = 1e-3,
 ) -> pl.DataFrame:
-    """Compare ledger-reconstructed stock against ``OITW`` for a company.
+    """Compare movements-reconstructed stock against ``OITW`` for a company.
 
     Args:
-        con: An open lakehouse connection holding the ledger.
+        con: An open lakehouse connection holding the movements table.
         company: Company to validate.
         tolerance: Absolute difference treated as a match (handles fractional
             rounding).
@@ -40,7 +40,7 @@ def reconcile_company(
     recon = con.execute(
         f"""
         SELECT item_code, warehouse, SUM(in_qty - out_qty) AS qty_recon
-        FROM {LEDGER_TABLE}
+        FROM {MOVEMENTS_TABLE}
         WHERE company = ?
         GROUP BY item_code, warehouse
         """,

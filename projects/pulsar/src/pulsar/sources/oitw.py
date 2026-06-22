@@ -1,6 +1,6 @@
 """Extraction of current stock from SAP ``OITW`` (per warehouse, per item).
 
-Used as the source of truth for the golden validation: the ledger
+Used as the source of truth for the golden validation: the movements
 reconstruction (running sum of OINM) must equal ``OITW.OnHand`` today.
 """
 

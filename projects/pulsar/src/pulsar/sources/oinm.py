@@ -1,6 +1,6 @@
 """Incremental extraction of inventory movements from SAP ``OINM``.
 
-``OINM`` (Whse Journal) is the immutable inventory-movement ledger in SAP B1:
+``OINM`` (Whse Journal) is the immutable inventory-movement journal in SAP B1:
 one row per posting line, with ``InQty``/``OutQty``, warehouse, dates and the
 source-document link. The point-in-time inventory at any date is the running
 sum of these movements (validated: reconstruction == ``OITW`` current stock).
@@ -18,9 +18,10 @@ import polars as pl
 
 from pulsar.config.hana import hana_connection
 from pulsar.config.settings import Company, get_hana_settings
+from pulsar.retail.calendar import retail_year_expr
 
-# Column order of the ledger frame this module produces.
-LEDGER_COLUMNS: tuple[str, ...] = (
+# Column order of the movements frame this module produces.
+MOVEMENT_COLUMNS: tuple[str, ...] = (
     "mov_id",
     "company",
     "item_code",
@@ -36,6 +37,7 @@ LEDGER_COLUMNS: tuple[str, ...] = (
     "in_qty",
     "out_qty",
     "trans_value",
+    "retail_year",
 )
 
 
@@ -92,7 +94,7 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
         company: The company the rows belong to.
 
     Returns:
-        A frame with the columns of :data:`LEDGER_COLUMNS`.
+        A frame with the columns of :data:`MOVEMENT_COLUMNS`.
     """
     typed = df.with_columns(
         pl.col("item_code").cast(pl.Utf8),
@@ -118,6 +120,8 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
                 minutes=(pl.col("doc_time") % 100).fill_null(0),
             )
         ).alias("doc_ts"),
+        # Partition key: retail year of the business-effective date (doc_date).
+        retail_year_expr("doc_date"),
     )
 
     natural_key = pl.concat_str(
@@ -132,7 +136,7 @@ def finalize_oinm_frame(df: pl.DataFrame, company: Company) -> pl.DataFrame:
         separator="|",
         ignore_nulls=False,
     )
-    return typed.with_columns(natural_key.hash().alias("mov_id")).select(LEDGER_COLUMNS)
+    return typed.with_columns(natural_key.hash().alias("mov_id")).select(MOVEMENT_COLUMNS)
 
 
 def fetch_oinm(company: Company, *, since: date, until: date) -> pl.DataFrame:
@@ -144,7 +148,7 @@ def fetch_oinm(company: Company, *, since: date, until: date) -> pl.DataFrame:
         until: Exclusive upper bound on ``CreateDate``.
 
     Returns:
-        A finalized ledger frame (columns of :data:`LEDGER_COLUMNS`); empty if
+        A finalized movements frame (columns of :data:`MOVEMENT_COLUMNS`); empty if
         no movements were captured in the window.
     """
     schema = get_hana_settings().schema_for(company)
@@ -159,7 +163,7 @@ def fetch_oinm(company: Company, *, since: date, until: date) -> pl.DataFrame:
             cur.close()
 
     if not rows:
-        return pl.DataFrame(schema={c: pl.Utf8 for c in LEDGER_COLUMNS}).clear()
+        return pl.DataFrame(schema={c: pl.Utf8 for c in MOVEMENT_COLUMNS}).clear()
     # hdbcli returns rows as ``pyhdbcli.ResultRow`` objects, which polars does not
     # recognise as sequences (it would treat each row as a single scalar). Convert
     # to plain tuples so polars builds one column per value.
