@@ -13,6 +13,10 @@ dependencies = [
     "pydantic>=2.7",
     "pydantic-settings>=2.3",
     "pyarrow>=24.0.0",
+    "apscheduler>=3.11,<4",
+    "fastapi>=0.138.0",
+    "uvicorn[standard]>=0.49.0",
+    "psutil>=6.0",
 ]
 
 [build-system]
@@ -31,6 +35,7 @@ dev = [
     "pytest>=8.3",
     "pytest-cov>=6.0",
     "pip-audit>=2.7",
+    "httpx>=0.28.1",
 ]
 
 # ---------------------------------------------------------------------------
@@ -71,9 +76,9 @@ warn_unused_ignores = true
 show_error_codes = true
 pretty = true
 
-# hdbcli (driver propietario de SAP) no publica type stubs.
+# hdbcli (driver propietario de SAP), APScheduler y psutil no publican type stubs.
 [[tool.mypy.overrides]]
-module = ["hdbcli.*"]
+module = ["hdbcli.*", "apscheduler.*", "psutil.*"]
 ignore_missing_imports = true
 
 # ---------------------------------------------------------------------------
