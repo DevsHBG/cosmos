@@ -23,12 +23,15 @@ from fastapi import APIRouter, FastAPI, Query, Request, Response
 
 from pulsar.api.logs import LogType, query_logs
 from pulsar.api.problem import Problem, ProblemException, register_problem_handlers
-from pulsar.api.schemas import Health, JobInfo, JobRunInfo, LogPage, RunAccepted
+from pulsar.api.runs import query_runs, run_to_item
+from pulsar.api.schemas import Health, JobInfo, JobRunInfo, LogPage, RunItem, RunPage
 from pulsar.jobs.core import Job, all_jobs, get, last_run
+from pulsar.jobs.runs import ActiveRunError, Run, run_store
 from pulsar.jobs.scheduler import build_scheduler, run_now
 from pulsar.logger import log
 from pulsar.logger.capture.http import LoggingMiddleware
 from pulsar.logger.capture.resources import PerformanceSampler
+from pulsar.logger.context import current_correlation_id
 
 #: Pagination bounds for every collection (``docs/arquitectura-restful.md`` §11).
 _DEFAULT_LIMIT = 100
@@ -48,6 +51,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     actually started it (lets tests own the singleton's lifecycle).
     """
     started_log = log.start()
+    run_store.ensure_schema()  # authoritative run state (separate store under db/)
     sampler = PerformanceSampler(log)
     sampler.start()
     scheduler = build_scheduler()
@@ -105,9 +109,26 @@ def _set_next_link(response: Response, request: Request, next_cursor: str | None
         response.headers["Link"] = f'<{url}>; rel="next"'
 
 
-# Shared query-parameter types for the log collections.
+# Shared query-parameter types for the collections.
 _Limit = Annotated[int, Query(ge=1, le=_MAX_LIMIT)]
 _Sort = Annotated[str, Query(description="Sort key: 'ts' (asc) or '-ts' (desc, default).")]
+#: Sort key for the runs collection (its time field is ``created_at``).
+_RunSort = Annotated[str, Query(description="Sort key: 'created_at' or '-created_at' (default).")]
+
+
+def _run_conflict(name: str) -> ProblemException:
+    """Build the 409 problem for triggering a job that already has an active run."""
+    return ProblemException(
+        409,
+        "Run already active",
+        detail=f"Job {name!r} already has an active run; retry once it finishes.",
+        type_slug="run-conflict",
+    )
+
+
+def _set_run_location(response: Response, run: Run) -> None:
+    """Point ``Location`` at the run resource created/replayed by ``POST .../runs``."""
+    response.headers["Location"] = f"/v1/jobs/{run.job}/runs/{run.id}"
 
 
 def create_app() -> FastAPI:
@@ -143,22 +164,41 @@ def create_app() -> FastAPI:
         """Get one job and its last run."""
         return _job_info(_require_job(name))
 
-    @v1.post("/jobs/{name}/runs", status_code=202, responses=_NOT_FOUND)
-    def create_run(name: str, request: Request, response: Response) -> RunAccepted:
-        """Trigger a run (async): accept it and enqueue it on the scheduler.
+    @v1.post(
+        "/jobs/{name}/runs",
+        status_code=202,
+        responses={**_NOT_FOUND, 409: {"model": Problem, "description": "A run is already active"}},
+    )
+    def create_run(name: str, request: Request, response: Response) -> RunItem:
+        """Trigger a run (async): create the run, enqueue it, and return it.
 
-        Returns ``202 Accepted`` with a ``Location`` pointing at the runs collection;
-        the run executes in the background, so poll ``GET /v1/jobs/{name}/runs`` for
-        the outcome.
+        Returns ``202 Accepted`` with a ``Location`` pointing at the new run resource;
+        the job runs in the background, so poll ``GET /v1/jobs/{name}/runs/{id}`` for
+        its lifecycle. A repeated ``Idempotency-Key`` replays the original run instead
+        of starting a new one; triggering while one is already active → ``409``.
         """
         _require_job(name)
-        run_now(request.app.state.scheduler, name)
-        response.headers["Location"] = f"/v1/jobs/{name}/runs"
-        return RunAccepted(
-            job=name,
-            status="accepted",
-            detail="Run enqueued; poll the runs collection for the outcome.",
-        )
+        key = request.headers.get("Idempotency-Key")
+        if key is not None:
+            existing = run_store.find_by_idempotency_key(key)
+            if existing is not None:  # replay: same key → original run, no new enqueue
+                _set_run_location(response, existing)
+                return run_to_item(existing)
+        if run_store.has_active(name):
+            raise _run_conflict(name)
+        try:
+            run, created = run_store.create(
+                name,
+                trigger="api",
+                correlation_id=current_correlation_id(),
+                idempotency_key=key,
+            )
+        except ActiveRunError as exc:  # lost a race with a concurrent trigger
+            raise _run_conflict(name) from exc
+        if created:  # a replay (created=False) is already enqueued; never enqueue twice
+            run_now(request.app.state.scheduler, name, run_id=run.id)
+        _set_run_location(response, run)
+        return run_to_item(run)
 
     @v1.get("/jobs/{name}/runs", responses=_NOT_FOUND)
     def list_runs(
@@ -168,15 +208,14 @@ def create_app() -> FastAPI:
         status: str | None = None,
         since: datetime | None = None,
         until: datetime | None = None,
-        sort: _Sort = "-ts",
+        sort: _RunSort = "-created_at",
         limit: _Limit = _DEFAULT_LIMIT,
         cursor: str | None = None,
-    ) -> LogPage:
-        """List a job's run history (the ``job`` slice of the logs collection)."""
+    ) -> RunPage:
+        """List a job's run history (newest first), from the authoritative runs store."""
         _require_job(name)
-        items, next_cursor = query_logs(
-            type_="job",
-            job=name,
+        items, next_cursor = query_runs(
+            name,
             status=status,
             since=since,
             until=until,
@@ -185,7 +224,21 @@ def create_app() -> FastAPI:
             cursor=cursor,
         )
         _set_next_link(response, request, next_cursor)
-        return LogPage(items=items, next_cursor=next_cursor)
+        return RunPage(items=items, next_cursor=next_cursor)
+
+    @v1.get("/jobs/{name}/runs/{run_id}", responses=_NOT_FOUND)
+    def get_run(name: str, run_id: str) -> RunItem:
+        """Get one run of a job by id (its current lifecycle state)."""
+        _require_job(name)
+        run = run_store.get(name, run_id)
+        if run is None:
+            raise ProblemException(
+                404,
+                "Unknown run",
+                detail=f"No run {run_id!r} for job {name!r}.",
+                type_slug="unknown-run",
+            )
+        return run_to_item(run)
 
     @v1.get("/logs")
     def list_logs(

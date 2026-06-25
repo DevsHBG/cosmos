@@ -3,20 +3,30 @@
 The lakehouse uses a single-writer SQLite catalog, so every job that writes to it
 must run one at a time. :func:`run_job` enforces this with a process-wide lock
 (read-only jobs skip it). The layer is invocation-agnostic: the CLI, the
-scheduler and (later) the FastAPI server all execute jobs through ``run_job``, so
+scheduler and the FastAPI server all execute jobs through ``run_job``, so
 behaviour is identical no matter who triggers a run.
+
+Every run is recorded in the authoritative runs store (:mod:`pulsar.jobs.runs`):
+``run_job`` creates it (unless the API pre-created it at enqueue and passed a
+``run_id``), transitions it ``queued → running`` once it holds the write-lock, and
+``finalize``\\ s it to ``ok``/``failed``. Store writes are best-effort here so a
+storage hiccup never breaks the run itself; the ``JobLog`` emission is unchanged.
 """
 
 from __future__ import annotations
 
+import sys
 import threading
+import uuid
 from abc import ABC, abstractmethod
 from contextlib import nullcontext
-from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import ClassVar
 
+from pydantic import BaseModel, ConfigDict
+
+from pulsar.jobs.runs import run_store
 from pulsar.logger.context import correlation_scope
 
 #: Default lakehouse locations (overridable per run via :class:`JobContext`).
@@ -24,17 +34,19 @@ DEFAULT_CATALOG = Path("lake/catalog.sqlite")
 DEFAULT_DATA = Path("lake/data")
 
 
-@dataclass(frozen=True, slots=True)
-class JobContext:
+class JobContext(BaseModel):
     """Shared configuration handed to every job run."""
+
+    model_config = ConfigDict(frozen=True)
 
     catalog_path: Path = DEFAULT_CATALOG
     data_path: Path = DEFAULT_DATA
 
 
-@dataclass(frozen=True, slots=True)
-class JobResult:
+class JobResult(BaseModel):
     """The outcome of a single job run (kept as the job's last run)."""
+
+    model_config = ConfigDict(frozen=True)
 
     job: str
     status: str  # "ok" | "failed"
@@ -54,8 +66,10 @@ class JobResult:
         return (self.finished_at - self.started_at).total_seconds()
 
 
-class Job(ABC):
+class Job(BaseModel, ABC):
     """A runnable unit of work. Concrete jobs carry their own parameters."""
+
+    model_config = ConfigDict(frozen=True)
 
     #: Unique registry name (e.g. ``"sync-movements"``).
     name: ClassVar[str]
@@ -95,35 +109,26 @@ def all_jobs() -> list[Job]:
 
 
 def last_run(name: str) -> JobResult | None:
-    """Return the most recent :class:`JobResult` for ``name`` (or ``None``).
+    """Return the most recent finished :class:`JobResult` for ``name`` (or ``None``).
 
-    The run history is persisted by the logger (``logs/logs.sqlite``), so this
-    reconstructs the last run from the latest :class:`~pulsar.logger.JobLog`.
-    Returns ``None`` if the job has never run or the store is unavailable.
+    Run state is authoritative in the runs store (:mod:`pulsar.jobs.runs`), so this
+    returns the latest terminal (``ok``/``failed``) run there. Returns ``None`` if
+    the job has never finished a run or the store is unavailable.
     """
     try:
-        from pulsar.logger import log
-
-        rows = log.query(
-            "job_logs",
-            where="job = ?",
-            params=(name,),
-            order_by="ts",
-            descending=True,
-            limit=1,
-        )
-    except Exception:  # best-effort: a read must never break on the logging layer
+        run = run_store.latest_terminal(name)
+    except Exception:  # best-effort: a read must never break on the store layer
         return None
-    if not rows:
+    if run is None:
         return None
-    row = rows[0]
+    started = run.started_at or run.created_at
     return JobResult(
-        job=row["job"],
-        status=row["status"],
-        rows=int(row["rows"]),
-        detail=row["detail"] or "",
-        started_at=datetime.fromisoformat(row["started_at"]),
-        finished_at=datetime.fromisoformat(row["finished_at"]),
+        job=run.job,
+        status=run.status,
+        rows=run.rows,
+        detail=run.detail or "",
+        started_at=started,
+        finished_at=run.finished_at or started,
     )
 
 
@@ -137,34 +142,95 @@ def _record(result: JobResult) -> None:
         pass
 
 
+def _create_run(job_name: str, *, trigger: str, correlation_id: str | None) -> str:
+    """Create a ``queued`` run and return its id (best-effort; a local id on failure)."""
+    try:
+        run, _ = run_store.create(job_name, trigger=trigger, correlation_id=correlation_id)
+        return run.id
+    except Exception as exc:  # best-effort: a store hiccup must never break the run
+        print(f"[runs] create failed: {exc!r}", file=sys.stderr)
+        return uuid.uuid4().hex
+
+
+def _mark_running(run_id: str, started_at: datetime) -> None:
+    """Transition the run to ``running`` (best-effort)."""
+    try:
+        run_store.mark_running(run_id, started_at)
+    except Exception as exc:  # best-effort
+        print(f"[runs] mark_running failed: {exc!r}", file=sys.stderr)
+
+
+def _finalize_run(run_id: str, result: JobResult) -> None:
+    """Transition the run to its terminal state (best-effort)."""
+    try:
+        run_store.finalize(
+            run_id,
+            status=result.status,
+            rows=result.rows,
+            detail=result.detail,
+            finished_at=result.finished_at,
+        )
+    except Exception as exc:  # best-effort
+        print(f"[runs] finalize failed: {exc!r}", file=sys.stderr)
+
+
 def run_job(
-    job: Job, ctx: JobContext | None = None, *, correlation_id: str | None = None
+    job: Job,
+    ctx: JobContext | None = None,
+    *,
+    correlation_id: str | None = None,
+    run_id: str | None = None,
+    trigger: str = "manual",
 ) -> JobResult:
-    """Run a job, serializing lakehouse writers and recording the outcome.
+    """Run a job, serializing lakehouse writers and recording its lifecycle.
 
     Never raises: a job exception is captured into a ``failed`` :class:`JobResult`
     so every caller (CLI, scheduler, API) gets a structured result either way. The
-    run executes inside a correlation scope and its outcome is persisted as a
-    ``JobLog`` (the durable, queryable run history).
+    run executes inside a correlation scope; its lifecycle (``queued → running →
+    ok/failed``) is persisted in the runs store and its outcome is also emitted as a
+    ``JobLog`` (the cross-cutting observability event).
 
     Args:
         job: The job to run.
         ctx: Run configuration; defaults to :class:`JobContext` defaults.
         correlation_id: Correlation id to bind (e.g. propagated from an API
             request); a fresh one is generated when ``None``.
+        run_id: Id of a run already created in the store (the API pre-creates it at
+            enqueue to return a ``Location``); when ``None``, ``run_job`` creates one.
+        trigger: How this run was triggered (``scheduled``/``cli``/``manual``); used
+            only when creating the run here (ignored when ``run_id`` is given).
 
     Returns:
         The run's :class:`JobResult`.
     """
     ctx = ctx or JobContext()
     guard = _write_lock if job.writes_lake else nullcontext()
-    started = datetime.now(UTC)
-    with correlation_scope(correlation_id):
+    with correlation_scope(correlation_id) as cid:
+        if run_id is None:
+            run_id = _create_run(job.name, trigger=trigger, correlation_id=cid)
+        started = datetime.now(UTC)  # provisional; refined to the post-lock start below
         try:
             with guard:
+                started = datetime.now(UTC)  # actual execution start (after the write-lock)
+                _mark_running(run_id, started)
                 rows = job.run(ctx)
-            result = JobResult(job.name, "ok", rows, f"{rows} rows", started, datetime.now(UTC))
+            result = JobResult(
+                job=job.name,
+                status="ok",
+                rows=rows,
+                detail=f"{rows} rows",
+                started_at=started,
+                finished_at=datetime.now(UTC),
+            )
         except Exception as exc:
-            result = JobResult(job.name, "failed", 0, repr(exc), started, datetime.now(UTC))
+            result = JobResult(
+                job=job.name,
+                status="failed",
+                rows=0,
+                detail=repr(exc),
+                started_at=started,
+                finished_at=datetime.now(UTC),
+            )
+        _finalize_run(run_id, result)
         _record(result)
     return result

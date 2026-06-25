@@ -5,10 +5,10 @@
 > Referenciado desde `ROADMAP.md`. La fase 4 (escalado) sigue pendiente.
 >
 > **Nota de naming**: el paquete es **`pulsar.logger`** (no `observability`); el
-> almacén operativo es **`logs/logs.sqlite`** (no `ops.sqlite`). El directorio
-> `logs/` es la raíz de datos del logger (ahí vivirán los sinks de parquet/JSONL de
-> la fase 4) y está gitignored, separado del lake. Los settings son
-> `LoggerSettings` (`PULSAR_LOGS_*`).
+> almacén operativo es **`db/logs/logs.sqlite`** (no `ops.sqlite`). Los stores
+> operativos se agrupan bajo **`db/<dominio>/`** (`db/logs/` para el logger,
+> `db/runs/` para el runs store de la capa de jobs); todo `db/` está gitignored,
+> separado del lake. Los settings del logger son `LoggerSettings` (`PULSAR_LOGS_*`).
 
 ## Objetivo
 
@@ -116,9 +116,9 @@ class Sink(ABC):
 ```
 
 - `SqliteSink(db_path, table, record_type)` — WAL, insert batch, una tabla por
-  tipo en `logs/logs.sqlite`; columnas derivadas de los campos del record. Sinks
+  tipo en `db/logs/logs.sqlite`; columnas derivadas de los campos del record. Sinks
   para `job_logs`, `api_logs` y `performance_logs`.
-- `FileSink(dir)` — JSONL rotado por día: `logs/<kind>/YYYY-MM-DD.jsonl` (alto
+- `FileSink(dir)` — JSONL rotado por día: `db/logs/<kind>/YYYY-MM-DD.jsonl` (alto
   volumen, futuro).
 - `ParquetSink(dir)` — roll-off histórico para análisis (futuro).
 
@@ -176,7 +176,7 @@ Se cruzan por **timestamp** (y `correlation_id`): "RAM alta 3-4 pm → qué corr
 
 ## Consulta unificada
 
-`log.connect_duckdb()` devuelve una conexión DuckDB que attachea `logs/logs.sqlite`
+`log.connect_duckdb()` devuelve una conexión DuckDB que attachea `db/logs/logs.sqlite`
 (y a futuro los parquet/JSONL). Permite SQL sobre todos los tipos a la vez:
 
 ```sql
@@ -214,6 +214,6 @@ WHERE p.rss_mb > 4000;
 4. ⏳ **Escalado (futuro, no ahora)** — FileSink/ParquetSink, retención, redacción,
    sampling, colector externo.
 
-`logs/logs.sqlite` siempre **aparte** del lake de negocio. `psutil` se añadió como
+`db/logs/logs.sqlite` siempre **aparte** del lake de negocio. `psutil` se añadió como
 dependencia en la fase 2.
 

@@ -17,10 +17,10 @@ from __future__ import annotations
 
 import sys
 import threading
-from dataclasses import dataclass
 
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
+from pydantic import BaseModel, ConfigDict
 
 from pulsar.jobs.core import JobContext, get, run_job
 from pulsar.logger import log
@@ -35,9 +35,10 @@ _JOB_DEFAULTS = {
 }
 
 
-@dataclass(frozen=True)
-class ScheduledJob:
+class ScheduledJob(BaseModel):
     """A registered job bound to a cron trigger (declared in :data:`SCHEDULE`)."""
+
+    model_config = ConfigDict(frozen=True, arbitrary_types_allowed=True)
 
     job_name: str
     trigger: CronTrigger
@@ -55,13 +56,24 @@ SCHEDULE: tuple[ScheduledJob, ...] = (
 )
 
 
-def _run_scheduled(job_name: str, correlation_id: str | None = None) -> None:
+def _run_scheduled(
+    job_name: str, correlation_id: str | None = None, run_id: str | None = None
+) -> None:
     """Trigger body: run a registered job through the serialized runner.
 
     ``correlation_id`` is propagated from a manual API trigger so the request and
     the job it spawned share one id; scheduled fires pass ``None`` (fresh id).
+    ``run_id`` is the store run the API pre-created at enqueue; a cron fire passes
+    ``None`` so ``run_job`` creates one tagged ``scheduled``.
     """
-    run_job(get(job_name), JobContext(), correlation_id=correlation_id)
+    trigger = "api" if run_id is not None else "scheduled"
+    run_job(
+        get(job_name),
+        JobContext(),
+        correlation_id=correlation_id,
+        run_id=run_id,
+        trigger=trigger,
+    )
 
 
 def build_scheduler() -> BackgroundScheduler:
@@ -87,20 +99,22 @@ def build_scheduler() -> BackgroundScheduler:
     return scheduler
 
 
-def run_now(scheduler: BackgroundScheduler, job_name: str) -> None:
+def run_now(scheduler: BackgroundScheduler, job_name: str, *, run_id: str | None = None) -> None:
     """Enqueue a registered job to run once, now, in the scheduler's thread pool.
 
     Used by the API's manual-trigger endpoint: it goes through the same executor
-    and the same :func:`run_job` path as scheduled fires (write-lock + recording),
-    so a manual run behaves identically to a scheduled one.
+    and the same :func:`run_job` path as scheduled fires (write-lock + lifecycle
+    recording), so a manual run behaves identically to a scheduled one.
 
     Args:
         scheduler: A started scheduler (typically the one in the FastAPI lifespan).
         job_name: Name of a registered job.
+        run_id: Id of the store run the API pre-created at enqueue, propagated so the
+            background execution transitions that exact run.
     """
     get(job_name)  # fail fast (KeyError) if the name is not registered
     # Propagate the caller's correlation id (if any) into the scheduler thread.
-    scheduler.add_job(_run_scheduled, args=[job_name, current_correlation_id()])
+    scheduler.add_job(_run_scheduled, args=[job_name, current_correlation_id(), run_id])
 
 
 def main() -> int:

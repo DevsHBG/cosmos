@@ -6,7 +6,6 @@ at a temp store. No HANA/lake is touched (the job is a harmless fake).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import ClassVar
 
 from fastapi.testclient import TestClient
@@ -17,7 +16,6 @@ from pulsar.logger import log
 from pulsar.logger.capture.resources import PerformanceSampler
 
 
-@dataclass(frozen=True)
 class _Ok(Job):
     name: ClassVar[str] = "_cap-ok"
     description: ClassVar[str] = "fake ok job for capture tests"

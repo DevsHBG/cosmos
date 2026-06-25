@@ -4,6 +4,15 @@ Pipeline de extracción → lakehouse sobre SAP Business One (HANA). Layout `src
 (el paquete es `pulsar`, ver `pyproject.toml`). Tooling: `uv`, `ruff`, `mypy`
 (strict), `pytest`.
 
+## Estándares del proyecto (normativos)
+
+Las reglas de patrones/arquitectura del proyecto viven en
+[`docs/estandares/`](./docs/estandares/README.md) (marco de gobernanza en 3
+niveles + índice). Rige el **principio de coherencia**: una sola forma idiomática
+por preocupación. Vigentes hoy: **`PULSAR-STD-001`** — modelar datos con
+**Pydantic v2** por defecto (`dataclass` solo como excepción justificada a nivel
+módulo, ver [`docs/estandares/modelado-de-datos.md`](./docs/estandares/modelado-de-datos.md)).
+
 ## Convención de fechas: SIEMPRE calendario retail (4-5-4)
 
 **Toda** lógica de fechas con sentido de negocio —agrupación, clasificación,
@@ -67,19 +76,25 @@ FastAPI con el scheduler en su `lifespan`).
   expone la **API RESTful** (estándar normativo en
   [`docs/arquitectura-restful.md`](./docs/arquitectura-restful.md) §18). Operativos
   sin versión: `GET /health` (liveness) y `GET /health/ready` (readiness). Bajo
-  `/v1`: `GET /v1/jobs`, `GET /v1/jobs/{name}`, `POST /v1/jobs/{name}/runs` (trigger
-  manual → `202` + header `Location` + corre en background vía el scheduler),
-  `GET /v1/jobs/{name}/runs` (historial de corridas) y `GET /v1/logs` (logs). Errores
-  en `application/problem+json` (RFC 9457) con `correlation_id`; colecciones paginan
-  por **cursor** (`Link: rel="next"` + `next_cursor`). Arranca con
-  `python -m pulsar.api`; docs interactivas en `/docs`.
-- El recurso `run` es **history-only** hoy: una corrida no tiene `id` ni estado
-  pollable propio (el `Location` apunta a la colección de historial). El
-  `{id}` pollable (`queued→running→ok/failed`) y la `Idempotency-Key` quedan en
-  `ROADMAP.md` (requieren un store de runs creado en el enqueue).
-- El historial de corridas (`last_run`) está **graduado a SQLite**: `run_job`
-  emite un `JobLog` y `last_run` reconstruye la última corrida desde
-  `logs/logs.sqlite` (ver Logger).
+  `/v1`: `GET /v1/jobs`, `GET /v1/jobs/{name}`, `POST /v1/jobs/{name}/runs` (dispara
+  → `202` + `Location` al run creado + corre en background vía el scheduler),
+  `GET /v1/jobs/{name}/runs` (historial), `GET /v1/jobs/{name}/runs/{id}` (estado de
+  una corrida) y `GET /v1/logs` (logs). Errores en `application/problem+json`
+  (RFC 9457) con `correlation_id`; colecciones paginan por **cursor**
+  (`Link: rel="next"` + `next_cursor`). Arranca con `python -m pulsar.api`; docs
+  interactivas en `/docs`.
+- El recurso `run` tiene **ciclo de vida pollable** (`pulsar/jobs/runs.py`): una
+  corrida es un recurso con `id` y estado `queued→running→ok/failed`, consultable por
+  `GET .../runs/{id}`. `POST .../runs` la crea en el **runs store** (autoritativo,
+  síncrono) y devuelve `202` + `Location` al run; admite header `Idempotency-Key`
+  (reintento con la misma clave = replay, no relanza) y devuelve `409` si el job ya
+  tiene un run activo (`queued`/`running`). El runs store es la **fuente de verdad**
+  del estado de corridas; `run_job` crea/transiciona el run, y el `JobLog` se sigue
+  emitiendo solo como evento de observabilidad (`GET /v1/logs?type=job`).
+- Stores operativos agrupados bajo **`db/<dominio>/`** (gitignored, aparte del lake):
+  `db/logs/logs.sqlite` (logger) y `db/runs/runs.sqlite` (runs). El historial de
+  corridas (`last_run`) lo reconstruye `run_job` desde el último run terminal del
+  runs store.
 - Pendiente (ver `ROADMAP.md`): el **job de mantenimiento** del lake (diferido,
   después de la observabilidad).
 
@@ -97,7 +112,7 @@ Servicio de logging reutilizable en `pulsar/logger/` (diseño y estado en
 - Captura automática: `run_job` (`JobLog`), `LoggingMiddleware` del API (`ApiLog`)
   y `PerformanceSampler` con `psutil` (`PerformanceLog` cada ~15 s). Un
   `correlation_id` (contextvar) hila request → job.
-- Store: **`logs/logs.sqlite`**, operativo y **aparte** del lake (gitignored).
+- Store: **`db/logs/logs.sqlite`**, operativo y **aparte** del lake (gitignored).
   Tablas `job_logs`, `api_logs` y `performance_logs`. Consulta: `log.query(...)` o
   `log.connect_duckdb()` (SQL cross-tabla). En la API se exponen como **una sola
   colección polimórfica** `GET /v1/logs?type=job|api|performance` (discriminador

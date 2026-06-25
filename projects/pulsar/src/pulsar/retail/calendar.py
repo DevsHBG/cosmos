@@ -22,10 +22,10 @@ Gregorian year. This is the intended consequence of the "always 52 weeks" rule
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, timedelta
 
 import polars as pl
+from pydantic import BaseModel, ConfigDict
 
 #: Alias for the ``date`` type, so the ``RetailDate.date`` field below can keep
 #: its ergonomic name without shadowing the type in its own annotations.
@@ -65,9 +65,10 @@ PERIOD_NAMES: tuple[str, ...] = (
 WEEKS_PER_QUARTER = WEEKS_PER_YEAR // 4  # 13
 
 
-@dataclass(frozen=True, slots=True)
-class RetailDate:
+class RetailDate(BaseModel):
     """A Gregorian date resolved into its retail-calendar coordinates."""
+
+    model_config = ConfigDict(frozen=True)
 
     date: _Date
     year: int  # retail year

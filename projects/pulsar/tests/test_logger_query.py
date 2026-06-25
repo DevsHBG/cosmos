@@ -41,8 +41,10 @@ def test_connect_duckdb_reads_all_tables(tmp_path: Path) -> None:
     try:
         con = svc.connect_duckdb()
         try:
-            assert con.execute("SELECT count(*) FROM job_logs").fetchone()[0] == 2
-            assert con.execute("SELECT count(*) FROM performance_logs").fetchone()[0] == 1
+            jobs_count = con.execute("SELECT count(*) FROM job_logs").fetchone()
+            assert jobs_count is not None and jobs_count[0] == 2
+            perf_count = con.execute("SELECT count(*) FROM performance_logs").fetchone()
+            assert perf_count is not None and perf_count[0] == 1
         finally:
             con.close()
     finally:

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date
 from typing import ClassVar
 
@@ -30,7 +29,6 @@ def _validate(ctx: JobContext, companies: tuple[Company, ...]) -> None:
         con.close()
 
 
-@dataclass(frozen=True)
 class SyncMovements(Job):
     """Incremental sync of movements from each company's watermark, then validate."""
 
@@ -47,7 +45,6 @@ class SyncMovements(Job):
         return total
 
 
-@dataclass(frozen=True)
 class BackfillMovements(Job):
     """Chunked historical backfill (retail-year windows), then validate."""
 

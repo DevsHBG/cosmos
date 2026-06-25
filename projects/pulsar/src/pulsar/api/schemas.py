@@ -40,12 +40,31 @@ class JobInfo(BaseModel):
     last_run: JobRunInfo | None = None
 
 
-class RunAccepted(BaseModel):
-    """Acknowledgement that a manual run was accepted for background execution."""
+class RunItem(BaseModel):
+    """A job run: its identity and lifecycle state (the run resource representation)."""
 
+    id: str
     job: str
-    status: str  # "accepted"
-    detail: str
+    status: str  # queued | running | ok | failed
+    trigger: str  # api | scheduled | cli | manual
+    rows: int
+    detail: str | None = None
+    correlation_id: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None
+    duration_s: float | None = None
+
+
+class RunPage(BaseModel):
+    """One page of a job's runs collection (cursor pagination, §11).
+
+    ``next_cursor`` is an opaque token for the next page (``null`` on the last page);
+    the same value is also surfaced via the ``Link: rel="next"`` response header.
+    """
+
+    items: list[RunItem]
+    next_cursor: str | None = None
 
 
 # -- Logs: one polymorphic collection, discriminated by ``type`` -----------------

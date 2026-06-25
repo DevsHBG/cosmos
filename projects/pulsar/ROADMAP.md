@@ -38,8 +38,9 @@ acción de punta a punta.
   body completo solo si falló y con tope — y **`performance_logs`** (serie de tiempo
   de CPU/RAM/disco cada ~15 s, sampler psutil).
 - Captura: `run_job` (jobs) + middleware HTTP (endpoints) + sampler (recursos);
-  best-effort. Escribe en `logs/logs.sqlite`, **aparte** del lake. El historial de
-  corridas de jobs ya se **graduó** a esta capa (la API lee `last_run` desde ahí).
+  best-effort. Escribe en `db/logs/logs.sqlite`, **aparte** del lake. (El estado
+  autoritativo de las corridas vive en el runs store, `db/runs/runs.sqlite`; ver la
+  sección de la API más abajo.)
 
 Después: auditoría de **acceso/identidad** (quién, autorización) y **event
 sourcing de negocio** (ciclo de vida de OC, etc.).
@@ -48,21 +49,22 @@ sourcing de negocio** (ciclo de vida de OC, etc.).
 
 El motor del sistema de logs/auditoría/eventos es **SQLite**. La captura (un
 insert por evento/acceso, durable, alta frecuencia = OLTP) va en una **SQLite
-operativa aparte** (`logs/logs.sqlite`), **nunca** dentro del lake de negocio.
+operativa aparte** (`db/logs/logs.sqlite`), **nunca** dentro del lake de negocio.
 
 DuckDB **no** es el almacén vivo (column-store/OLAP: inserts de a una fila caros,
 single-writer); se usa **solo para analizar** los logs después, leyendo la SQLite
 directo o rolando a parquet.
 
-El historial de corridas de jobs (`last_run`) fue el **primer cliente** de esta
-capa: ya no vive en memoria, se reconstruye desde el último `JobLog` en
-`logs/logs.sqlite`.
+Los stores operativos se agrupan bajo **`db/<dominio>/`**: `db/logs/logs.sqlite`
+(logger) y `db/runs/runs.sqlite` (estado autoritativo de corridas; ver la API). El
+`JobLog` sigue siendo el evento de observabilidad de cada corrida; `last_run` se
+reconstruye desde el último run terminal del runs store.
 
 ## API: alinear a estándar RESTful
 
 > Estado: **entregado** (alineación al estándar en
-> [`docs/arquitectura-restful.md`](./docs/arquitectura-restful.md) §18). Queda
-> pendiente solo el recurso `run` con ciclo de vida pollable (ver abajo).
+> [`docs/arquitectura-restful.md`](./docs/arquitectura-restful.md) §18), incluido el
+> recurso `run` con ciclo de vida pollable e `Idempotency-Key`.
 
 Implementado:
 
@@ -74,19 +76,18 @@ Implementado:
 - Prefijo de versión **`/v1`** en los recursos de dominio (`/health` queda sin
   versión); paginación por **cursor** (`Link: rel="next"` + `next_cursor`); `sort` y
   filtros estándar (`status`/`level`/`correlation_id`/`since`/`until`).
-- Corrida disparada como `POST /v1/jobs/{name}/runs` → `202` + `Location`, con
-  `GET /v1/jobs/{name}/runs` (historial = `logs?type=job`).
+- **Recurso `run` pollable** (`pulsar/jobs/runs.py`): `POST /v1/jobs/{name}/runs` →
+  `202` + `Location` al run creado; `GET /v1/jobs/{name}/runs/{id}` consulta su
+  estado (`queued→running→ok/failed`); `GET /v1/jobs/{name}/runs` es el historial.
+  El estado vive en el **runs store** autoritativo (`db/runs/runs.sqlite`), creado en
+  el *enqueue*; el `JobLog` queda como evento de observabilidad.
+- **`Idempotency-Key`** (RFC §14) en `POST .../runs`: reintento con la misma clave =
+  replay del run original (no relanza). Un trigger con un run ya activo → `409`.
 
-### Pendiente: recurso `run` con ciclo de vida (diferido)
+### Pendiente (cuando se justifique)
 
-Hoy una corrida es **history-only**: no tiene `id` ni estado pollable propio, y el
-`Location` del `202` apunta a la colección de historial (no al recurso creado).
-Falta, cuando se justifique:
-
-- Un **store de runs** creado en el *enqueue* (`status: queued→running→ok/failed`),
-  para `GET /v1/jobs/{name}/runs/{id}` (polling) y un `Location` que apunte al run.
-- Header **`Idempotency-Key`** en `POST .../runs` (dedup de reintentos de red,
-  RFC §14), que necesita ese store para deduplicar.
+- **Cancelación** de un run (`POST .../runs/{id}:cancel` o `DELETE`, estado
+  `canceled`) y **retención/expiración** del runs store.
 
 ## Mantenimiento del lake (diferido — después de la observabilidad)
 

@@ -36,8 +36,8 @@ def _context(args: argparse.Namespace) -> JobContext:
 def _build_job(args: argparse.Namespace) -> Job:
     companies = _companies(args.company)
     if args.job == "sync-movements":
-        return SyncMovements(companies)
-    return BackfillMovements(companies, since=args.since, until=args.until)
+        return SyncMovements(companies=companies)
+    return BackfillMovements(companies=companies, since=args.since, until=args.until)
 
 
 def main() -> int:

@@ -8,7 +8,8 @@ RESTful API (``docs/arquitectura-restful.md`` §18).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import threading
+import time
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
@@ -18,8 +19,10 @@ from pulsar.api.app import create_app
 from pulsar.jobs.core import Job, JobContext, register, run_job
 from pulsar.logger import JobLog, log
 
+#: Released to let the blocking job (below) finish; keeps a run "active" for the 409 test.
+_release = threading.Event()
 
-@dataclass(frozen=True)
+
 class _Noop(Job):
     name: ClassVar[str] = "_test-api-noop"
     description: ClassVar[str] = "fake job for the API trigger test"
@@ -27,6 +30,35 @@ class _Noop(Job):
 
     def run(self, ctx: JobContext) -> int:
         return 0
+
+
+class _Block(Job):
+    name: ClassVar[str] = "_test-api-block"
+    description: ClassVar[str] = "fake job that blocks until released (for the 409 test)"
+    writes_lake: ClassVar[bool] = False
+
+    def run(self, ctx: JobContext) -> int:
+        _release.wait(timeout=5.0)
+        return 0
+
+
+# Registered once at import (the registry is process-global, not reset per test).
+register(_Noop())
+register(_Block())
+
+
+def _poll_until_terminal(
+    client: TestClient, name: str, run_id: str, timeout: float = 5.0
+) -> dict[str, object]:
+    """Poll a run until it reaches a terminal state; fail if it never does."""
+    deadline = time.monotonic() + timeout
+    body: dict[str, object] = {}
+    while time.monotonic() < deadline:
+        body = client.get(f"/v1/jobs/{name}/runs/{run_id}").json()
+        if body["status"] in ("ok", "failed"):
+            return body
+        time.sleep(0.02)
+    raise AssertionError(f"run {run_id} did not finish in {timeout}s: {body}")
 
 
 # -- health (unversioned, operational) -------------------------------------
@@ -76,15 +108,61 @@ def test_trigger_unknown_job_returns_problem_404() -> None:
         assert resp.headers["content-type"] == "application/problem+json"
 
 
-def test_create_run_is_accepted_with_location() -> None:
-    register(_Noop())
+def test_create_run_is_accepted_with_location_to_the_run() -> None:
     with TestClient(create_app()) as client:
         resp = client.post("/v1/jobs/_test-api-noop/runs")
         assert resp.status_code == 202
-        assert resp.headers["location"] == "/v1/jobs/_test-api-noop/runs"
         body = resp.json()
         assert body["job"] == "_test-api-noop"
-        assert body["status"] == "accepted"
+        assert body["status"] == "queued"
+        assert body["id"]
+        # Location points at the run resource itself, not the collection.
+        assert resp.headers["location"] == f"/v1/jobs/_test-api-noop/runs/{body['id']}"
+
+
+def test_run_lifecycle_reaches_terminal_via_polling() -> None:
+    with TestClient(create_app()) as client:
+        resp = client.post("/v1/jobs/_test-api-noop/runs")
+        run_id = resp.json()["id"]
+        final = _poll_until_terminal(client, "_test-api-noop", run_id)
+        assert final["status"] == "ok"
+        assert final["id"] == run_id
+        assert final["finished_at"] is not None
+
+
+def test_get_unknown_run_returns_problem_404() -> None:
+    with TestClient(create_app()) as client:
+        resp = client.get("/v1/jobs/_test-api-noop/runs/does-not-exist")
+        assert resp.status_code == 404
+        assert resp.headers["content-type"] == "application/problem+json"
+        assert resp.json()["type"].endswith("/unknown-run")
+
+
+def test_triggering_while_active_returns_problem_409() -> None:
+    _release.clear()
+    with TestClient(create_app()) as client:
+        try:
+            first = client.post("/v1/jobs/_test-api-block/runs")
+            assert first.status_code == 202  # run 1 is queued/running and blocks
+            second = client.post("/v1/jobs/_test-api-block/runs")
+            assert second.status_code == 409
+            assert second.headers["content-type"] == "application/problem+json"
+            assert second.json()["type"].endswith("/run-conflict")
+        finally:
+            _release.set()  # let run 1 finish so shutdown is clean
+
+
+def test_idempotency_key_replays_the_same_run() -> None:
+    headers = {"Idempotency-Key": "abc-123"}
+    with TestClient(create_app()) as client:
+        first = client.post("/v1/jobs/_test-api-noop/runs", headers=headers)
+        second = client.post("/v1/jobs/_test-api-noop/runs", headers=headers)
+        assert first.status_code == 202
+        assert second.status_code == 202
+        assert second.json()["id"] == first.json()["id"]  # replay: same run
+        # The retry did not create a second run.
+        runs = client.get("/v1/jobs/_test-api-noop/runs").json()["items"]
+        assert len(runs) == 1
 
 
 # -- logs: one polymorphic collection --------------------------------------
@@ -123,13 +201,33 @@ def test_performance_logs_present() -> None:
 
 def test_runs_history_lists_job_runs() -> None:
     with TestClient(create_app()) as client:
-        run_job(_Noop())  # run_job takes an instance; no registration needed
-        log.flush()
+        run_job(_Noop())  # synchronous: creates and finalizes a run in the store
         resp = client.get("/v1/jobs/_test-api-noop/runs")
         assert resp.status_code == 200
         items = resp.json()["items"]
-        assert items and all(item["type"] == "job" for item in items)
-        assert any(item["job"] == "_test-api-noop" for item in items)
+        assert items
+        assert all(item["job"] == "_test-api-noop" for item in items)
+        assert items[0]["status"] == "ok"
+        assert "id" in items[0]
+
+
+def test_runs_cursor_paginates_and_covers_every_run() -> None:
+    with TestClient(create_app()) as client:
+        for _ in range(3):
+            run_job(_Noop())  # three terminal runs, synchronously
+        seen: list[str] = []
+        cursor: str | None = None
+        while True:
+            params: dict[str, str | int] = {"limit": 1}
+            if cursor:
+                params["cursor"] = cursor
+            page = client.get("/v1/jobs/_test-api-noop/runs", params=params).json()
+            seen.extend(item["id"] for item in page["items"])
+            cursor = page["next_cursor"]
+            if not cursor:
+                break
+        assert len(seen) == 3
+        assert len(set(seen)) == 3  # no duplicates, no gaps across pages
 
 
 def test_logs_cursor_paginates_newest_first() -> None:
