@@ -1,7 +1,8 @@
 """Settings for pulsar.
 
 Connection credentials come exclusively from the environment (no hardcoded
-secrets, see ADR-0003). Schema names are not secret and have sensible defaults
+secrets — an initial architecture decision, to be formalised in an ADR). Schema
+names are not secret and have sensible defaults
 that match the three SAP Business One company databases.
 """
 

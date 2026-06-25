@@ -14,6 +14,8 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pulsar.paths import DB_DIR
+
 
 class LoggerSettings(BaseSettings):
     """Logger settings, loaded from ``PULSAR_LOGS_*`` env vars.
@@ -23,8 +25,9 @@ class LoggerSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PULSAR_LOGS_", env_file=".env", extra="ignore")
 
-    #: Operational SQLite store (separate from the business lake), under ``db/``.
-    db_path: Path = Path("db/logs/logs.sqlite")
+    #: Operational SQLite store (separate from the business lake), under ``db/``
+    #: (anchored to the project, see :mod:`pulsar.paths`).
+    db_path: Path = DB_DIR / "logs" / "logs.sqlite"
     #: Background worker flush cadence, in seconds.
     flush_interval_s: float = 2.0
     #: Max records written per ``executemany`` batch.

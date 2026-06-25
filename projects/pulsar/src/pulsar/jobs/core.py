@@ -28,10 +28,12 @@ from pydantic import BaseModel, ConfigDict
 
 from pulsar.jobs.runs import run_store
 from pulsar.logger.context import correlation_scope
+from pulsar.paths import LAKE_DIR
 
 #: Default lakehouse locations (overridable per run via :class:`JobContext`).
-DEFAULT_CATALOG = Path("lake/catalog.sqlite")
-DEFAULT_DATA = Path("lake/data")
+#: Anchored to the project (see :mod:`pulsar.paths`), not the CWD.
+DEFAULT_CATALOG = LAKE_DIR / "catalog.sqlite"
+DEFAULT_DATA = LAKE_DIR / "data"
 
 
 class JobContext(BaseModel):

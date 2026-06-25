@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     from duckdb import DuckDBPyConnection
 
 # Earliest movement to consider on a first (empty) load. SAP data starts ~2019;
-# starting from inception yields a correct opening balance (ADR-0002).
+# starting from inception yields a correct opening balance.
 FLOOR_DATE = date(2019, 1, 1)
 
 
@@ -129,7 +129,7 @@ def sync_company(
 
     Resumes from the company's watermark (re-pulling the last captured day to
     absorb same-day additions). For the initial historical load use
-    :func:`backfill_company`, which chunks the pull by month.
+    :func:`backfill_company`, which chunks the pull by retail year.
 
     Args:
         company: Company to sync.

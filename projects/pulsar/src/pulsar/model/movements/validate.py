@@ -1,7 +1,7 @@
 """Golden validation: movements reconstruction vs SAP ``OITW`` current stock.
 
 If the running sum of OINM movements equals current on-hand for every
-(item, warehouse), the reconstruction is trustworthy (ADR-0002). This is the
+(item, warehouse), the reconstruction is trustworthy. This is the
 permanent regression test of the foundation.
 """
 

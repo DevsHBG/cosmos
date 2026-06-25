@@ -35,6 +35,8 @@ from typing import Any, get_args
 from pydantic import BaseModel, ConfigDict, field_serializer
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from pulsar.paths import DB_DIR
+
 
 class RunStoreSettings(BaseSettings):
     """Runs store settings, loaded from ``PULSAR_RUNS_*`` env vars.
@@ -44,8 +46,9 @@ class RunStoreSettings(BaseSettings):
 
     model_config = SettingsConfigDict(env_prefix="PULSAR_RUNS_", env_file=".env", extra="ignore")
 
-    #: Authoritative SQLite store for run state, grouped with logs under ``db/``.
-    db_path: Path = Path("db/runs/runs.sqlite")
+    #: Authoritative SQLite store for run state, grouped with logs under ``db/``
+    #: (anchored to the project, see :mod:`pulsar.paths`).
+    db_path: Path = DB_DIR / "runs" / "runs.sqlite"
     #: A ``queued``/``running`` run older than this is no longer counted "active"
     #: (so a crashed/stuck run never blocks a job's manual trigger forever).
     stale_after_s: float = 3600.0

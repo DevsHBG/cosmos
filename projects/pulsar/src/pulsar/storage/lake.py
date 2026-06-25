@@ -1,8 +1,9 @@
 """DuckLake store: attach a DuckLake lakehouse with a SQLite catalog.
 
-DuckLake (ADR-0002 §9) gives ACID, time-travel and schema evolution over
-Parquet. The catalog lives in a local SQLite file (zero extra infrastructure);
-data files live under ``data_path``. Migratable to Postgres later.
+DuckLake gives ACID, time-travel and schema evolution over Parquet. The catalog
+lives in a local SQLite file (zero extra infrastructure); data files live under
+``data_path``. Migratable to Postgres later. (Initial architecture decision; an
+ADR will formalise it.)
 """
 
 from __future__ import annotations

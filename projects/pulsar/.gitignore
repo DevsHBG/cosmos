@@ -21,6 +21,5 @@ htmlcov/
 .env
 lake/
 db/
-logs/
 
 # NOTA: uv.lock SÍ se versiona (lockfile reproducible del proyecto).

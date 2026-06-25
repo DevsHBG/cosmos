@@ -66,7 +66,7 @@ Cada documento tiene un papel distinto; no se solapan:
 
 - **Estándares** (este directorio) — reglas **vivas**: lo que el código DEBE hacer
   *ahora*. Se actualizan cuando la regla cambia.
-- **ADRs** (`docs/adr/`, según el README raíz) — el **registro de decisiones**:
+- **ADRs** (`docs/adr/`, *pendientes de redactar*) — el **registro de decisiones**:
   por qué se eligió algo, en una fecha, inmutable. Un estándar puede nacer de un
   ADR y citarlo; el ADR no se reescribe, el estándar sí evoluciona.
 - **`CLAUDE.md`** — guía operativa para agentes: el *qué hay* del proyecto, cargado

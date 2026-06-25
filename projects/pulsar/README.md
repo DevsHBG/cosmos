@@ -2,8 +2,9 @@
 
 **Python Utility for Loading, Synthesis, Analysis & Retrieval.**
 
-Proyecto de Python del monorepo [`cosmos`](../../README.md), autocontenido.
-Estándar definido en [ADR-0001](docs/adr/0001-python-toolchain.md).
+Proyecto de Python del monorepo [`cosmos`](../../README.md), autocontenido. El
+toolchain (tabla abajo) es una **decisión inicial de arquitectura** del proyecto;
+se formalizará en un ADR (`docs/adr/`) más adelante.
 
 | Aspecto        | Decisión                                  |
 | -------------- | ----------------------------------------- |
@@ -42,5 +43,5 @@ pulsar/
 ├── uv.lock               # lockfile reproducible
 ├── src/pulsar/           # código (src-layout)
 ├── tests/                # tests
-└── docs/adr/             # decisiones de arquitectura
+└── docs/                 # estándares, arquitectura y ADRs (futuros)
 ```

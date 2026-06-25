@@ -6,7 +6,7 @@ source-document link. The point-in-time inventory at any date is the running
 sum of these movements (validated: reconstruction == ``OITW`` current stock).
 
 The incremental watermark is ``CreateDate`` (capture date), NOT ``DocDate``,
-so back-dated documents are not missed (ADR-0002 §4). ``DocDate`` is preserved
+so back-dated documents are not missed. ``DocDate`` is preserved
 as the business-effective date.
 """
 
