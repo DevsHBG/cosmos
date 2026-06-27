@@ -95,3 +95,33 @@ Compactación (`ducklake_merge_adjacent_files`) + expiración de snapshots
 (`ducklake_expire_snapshots` + cleanup, política `expire_older_than`), como un job
 más de la capa de jobs, con su propio horario en el scheduler. Se hará **después**
 de la primera entrega de observabilidad.
+
+## Demanda y reabasto (prevención de quiebres en CEDIS)
+
+> Estado: **investigación cerrada** — estado del arte y roadmap por fases en
+> [`docs/reabasto-cedis-investigacion.md`](./docs/reabasto-cedis-investigacion.md).
+> Pendiente: implementar la Fase 1.
+
+Objetivo: evitar quiebres de inventario en **CEDIS ← proveedores** (single-echelon),
+sobre la base de `inventory.movements`. El cimiento de datos ya existe (serie de
+inventario reconstruible → detección de quiebres → des-censura de demanda). Camino:
+
+- **Fase 1 (interpretable):** `sales.history` (vista sobre el lake: egreso de venta
+  filtrado + `on_hand_before` + flag de quiebre) → des-censura simple → segmentación
+  por ADI/CV² y ciclo de vida **por periodo retail** (no anual) → punto de reorden por
+  SKU×origen con safety stock por nivel de servicio → guardrail de *last responsible
+  order date* por origen×temporada.
+- **Fase 2 (probabilístico):** pronóstico por cuantiles, estacional (Fourier/HW sobre
+  calendario retail), TSB para intermitentes, des-censura EM/suavizado, safety stock
+  no-paramétrico, cold-start por análogos/atributos, lead time estimado desde
+  recepciones reales.
+- **Fase 3 (avanzado):** cantidades tipo newsvendor desde el cuantil, OTB, y el
+  multi-echelon (ver TODO abajo).
+
+### TODO — distribución / asignación CEDIS → tiendas (multi-echelon)
+
+Diferido a propósito. Hoy las tiendas tienen su propio algoritmo de reabasto, así que
+el foco es CEDIS←proveedores. Más adelante, modelar el eslabón **CEDIS→tiendas** como
+sistema acoplado (MEIO): la demanda/sell-through de tienda alimenta la demanda
+agregada del CEDIS, y la asignación reparte el stock del CEDIS entre las ~35 tiendas.
+Entra como Fase 3 del trabajo de demanda y reabasto.

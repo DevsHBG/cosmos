@@ -40,6 +40,13 @@ MOVEMENT_COLUMNS: tuple[str, ...] = (
     "retail_year",
 )
 
+# ``trans_type`` carries the SAP B1 document object-type (``OINM.TransType``); the
+# meaning of each code (and the ``trans_value`` sign convention) is documented in
+# ``docs/diccionario-datos.md``.
+# TODO(trans_type): promote that reference table to a ``TransType(IntEnum)`` once a
+# consumer needs to classify movements by document type. Kept as docs-only for now
+# to avoid dead code (YAGNI / PULSAR-STD-001).
+
 
 def build_oinm_query(schema: str) -> str:
     """Build the incremental OINM extraction SQL for one schema.
