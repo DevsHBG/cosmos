@@ -16,8 +16,19 @@ Monorepo políglota. Agrupa proyectos **independientes y autocontenidos**; la ra
   arquitectura, estándares) vive ahí, no aquí.
 - Trabaja **dentro** de la carpeta del proyecto; no hay comandos a nivel de raíz.
 
+## Estándares globales (Nivel 1)
+
+Las reglas transversales del monorepo viven en
+[`docs/estandares/`](docs/estandares/README.md) (marco de gobernanza en 3 niveles
+en cascada + índice). **Todo proyecto las hereda.** Vigentes hoy:
+
+- **`COSMOS-STD-001`** — un gestor de paquetes idiomático por lenguaje: **pnpm**
+  para Node/JS/TS, **uv** para Python.
+
+Otras decisiones transversales de la suite viven en [`docs/`](docs/) (p. ej.
+[`identidad-y-autorizacion.md`](docs/identidad-y-autorizacion.md)).
+
 ## Pendiente
 
-Esta raíz alojará lo **global** del monorepo —reglas transversales, contexto de
-negocio y guía de navegación para herramientas agénticas (p. ej. Claude Code)—.
-Aún por definir.
+Contexto de negocio global y guía de navegación para herramientas agénticas (un
+`CLAUDE.md` en la raíz). Aún por definir.

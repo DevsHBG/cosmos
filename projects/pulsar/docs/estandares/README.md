@@ -36,11 +36,12 @@ Las reglas se organizan en tres niveles. Cada nivel **hereda** del superior y so
 
 | Nivel | Alcance | Vive en | ID | Estado |
 | ----- | ------- | ------- | -- | ------ |
-| **1 · Monorepo** | Todo `cosmos`: git, commits, flujo de equipo, CI/CD, Docker, seguridad transversal, lenguajes permitidos | *(por definir — `<raíz>/docs/estandares/`)* | `COSMOS-STD-NNN` | pendiente |
+| **1 · Monorepo** | Todo `cosmos`: git, commits, flujo de equipo, CI/CD, Docker, seguridad transversal, toolchain por lenguaje | [`<raíz>/docs/estandares/`](../../../../docs/estandares/README.md) | `COSMOS-STD-NNN` | **activo** (001) |
 | **2 · Proyecto** | Todo `pulsar`: patrones, arquitectura, idioma de herramientas, convenciones de código | **este directorio** (`projects/pulsar/docs/estandares/`) | `PULSAR-STD-NNN` | activo |
 | **3 · Módulo / servicio** | Un paquete concreto (`pulsar/jobs`, `pulsar/logger`, …) cuando, y solo cuando, necesita desviarse | Junto al código del módulo (docstring del paquete o nota breve en su doc) | `PULSAR-<MÓDULO>-STD-NNN` | a demanda |
 
-> El nivel 1 (monorepo) se escribirá sobre la marcha; hoy solo existe el nivel 2.
+> El nivel 1 (monorepo) ya existe (`COSMOS-STD-001`, gestor de paquetes) y se ampliará
+> sobre la marcha; ver [`<raíz>/docs/estandares/`](../../../../docs/estandares/README.md).
 > El nivel 3 es **opcional y excepcional**: solo se crea cuando un módulo tiene una
 > razón real para no seguir la regla del proyecto.
 
