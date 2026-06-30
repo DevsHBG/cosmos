@@ -1,0 +1,1 @@
+# Cliente tipado de la API de Pulsar. `pnpm gen:api` genera aquí `schema.d.ts`.
