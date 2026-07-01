@@ -1,6 +1,6 @@
 """The job runs collection: reading the authoritative runs store as a resource.
 
-A run is a first-class resource (``docs/arquitectura-restful.md`` §12/§18.3): its
+A run is a first-class resource (``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §12/§18.3): its
 lifecycle state lives in the runs store (:mod:`pulsar.jobs.runs`), which this module
 reads back as a **keyset-paginated** collection ordered by ``(created_at, rowid)`` —
 the same cursor scheme as the logs collection, so a growing series pages with

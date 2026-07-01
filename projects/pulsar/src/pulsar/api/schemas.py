@@ -3,7 +3,7 @@
 Logs are exposed as a single **polymorphic collection**: ``type`` is a discriminator
 on each item (``job``/``api``/``performance``), so one ``GET /v1/logs`` serves every
 kind and a new kind adds an enum value, not an endpoint (see
-``docs/arquitectura-restful.md`` §18.2).
+``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §18.2).
 """
 
 from __future__ import annotations

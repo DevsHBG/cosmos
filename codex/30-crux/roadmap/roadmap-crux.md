@@ -1,7 +1,24 @@
-# CRUX — Roadmap
+---
+id: null
+type: roadmap
+project: crux
+parent: "[[moc-crux]]"
+status: Vigente
+alcance: "Proyecto crux"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado:
+  - nota: "[[identidad-y-autorizacion]]"
+    razon: "La Fase 5 (login) depende del servicio central de auth de la suite."
+tags: []
+---
 
-Lo que **vendrá**, no lo que rige hoy. El estado y las convenciones vivas están en el
-[`README`](./README.md).
+# Roadmap — Crux
+
+↑ Pertenece a: [Crux](../moc-crux.md)
+
+> No se carga por defecto — ver [`moc-crux`](../moc-crux.md) para lo que rige
+> hoy.
 
 ## Fase 0 — Esqueleto ✅ (hecho)
 
@@ -37,7 +54,7 @@ theming claro/oscuro cableado; providers (Theme + Query + Router) y una ruta pla
 ## Fase 5 — Identidad y autorización
 
 - Login con passkeys / OIDC e integración con el servicio central de auth de la suite
-  (ver [`../../docs/identidad-y-autorizacion.md`](../../docs/identidad-y-autorizacion.md)).
+  (ver [identidad y autorización](../../10-monorepo/decisiones/identidad-y-autorizacion.md)).
 - PEP en el cliente: gateo de vistas por permiso (proyecto · módulo · acción · scope).
 
 ## TODOs sueltos
@@ -50,3 +67,8 @@ theming claro/oscuro cableado; providers (Theme + Query + Router) y una ruta pla
 - [ ] Definir los primeros `CRUX-STD-*` (nivel proyecto): estructura de carpetas,
       convención de componentes, manejo de estado servidor vs cliente.
 - [ ] Tests (Vitest + Testing Library) y CI.
+
+## Relacionado
+
+- [Identidad y autorización](../../10-monorepo/decisiones/identidad-y-autorizacion.md) —
+  la Fase 5 de este roadmap depende de esa decisión de arquitectura.

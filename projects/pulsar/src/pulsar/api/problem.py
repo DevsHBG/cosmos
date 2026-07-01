@@ -5,7 +5,7 @@ default ``{"detail": ...}`` body. Endpoints raise :class:`ProblemException` for 
 typed problem; the registered handlers also convert framework errors (unmatched
 routes, method-not-allowed, request validation) to the same shape. Every problem
 carries the request's ``correlation_id`` as an extension member, so an error links
-to its log row (see ``docs/arquitectura-restful.md`` §9).
+to its log row (see ``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §9).
 """
 
 from __future__ import annotations

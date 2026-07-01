@@ -7,11 +7,12 @@ Pipeline de extracción → lakehouse sobre SAP Business One (HANA). Layout `src
 ## Estándares del proyecto (normativos)
 
 Las reglas de patrones/arquitectura del proyecto viven en
-[`docs/estandares/`](./docs/estandares/README.md) (marco de gobernanza en 3
-niveles + índice). Rige el **principio de coherencia**: una sola forma idiomática
-por preocupación. Vigentes hoy: **`PULSAR-STD-001`** — modelar datos con
-**Pydantic v2** por defecto (`dataclass` solo como excepción justificada a nivel
-módulo, ver [`docs/estandares/modelado-de-datos.md`](./docs/estandares/modelado-de-datos.md)).
+[`codex/20-pulsar/moc-pulsar.md`](../../codex/20-pulsar/moc-pulsar.md) (marco de
+gobernanza en cascada + índice). Rige el **principio de coherencia**: una sola
+forma idiomática por preocupación. Vigentes hoy: **`PULSAR-STD-001`** — modelar
+datos con **Pydantic v2** por defecto (`dataclass` solo como excepción
+justificada a nivel módulo, ver
+[`pulsar-std-001-modelado-de-datos.md`](../../codex/20-pulsar/estandares/pulsar-std-001-modelado-de-datos.md)).
 
 ## Convención de fechas: SIEMPRE calendario retail (4-5-4)
 
@@ -74,7 +75,7 @@ FastAPI con el scheduler en su `lifespan`).
   servidor) → captura el día anterior. Standalone: `python -m pulsar.jobs.scheduler`.
 - `api/` (FastAPI): hospeda el scheduler en su `lifespan` (un solo proceso) y
   expone la **API RESTful** (estándar normativo en
-  [`docs/arquitectura-restful.md`](./docs/arquitectura-restful.md) §18). Operativos
+  [`arquitectura-restful.md`](../../codex/20-pulsar/arquitectura/arquitectura-restful.md) §18). Operativos
   sin versión: `GET /health` (liveness) y `GET /health/ready` (readiness). Bajo
   `/v1`: `GET /v1/jobs`, `GET /v1/jobs/{name}`, `POST /v1/jobs/{name}/runs` (dispara
   → `202` + `Location` al run creado + corre en background vía el scheduler),
@@ -95,13 +96,13 @@ FastAPI con el scheduler en su `lifespan`).
   `db/logs/logs.sqlite` (logger) y `db/runs/runs.sqlite` (runs). El historial de
   corridas (`last_run`) lo reconstruye `run_job` desde el último run terminal del
   runs store.
-- Pendiente (ver `ROADMAP.md`): el **job de mantenimiento** del lake (diferido,
-  después de la observabilidad).
+- Pendiente (ver el [roadmap de Pulsar](../../codex/20-pulsar/roadmap/roadmap-pulsar.md)):
+  el **job de mantenimiento** del lake (diferido, después de la observabilidad).
 
 ## Logger (observabilidad)
 
 Servicio de logging reutilizable en `pulsar/logger/` (diseño y estado en
-[`docs/observability.md`](./docs/observability.md)). Emite desde cualquier parte:
+[`observabilidad.md`](../../codex/20-pulsar/arquitectura/observabilidad.md)). Emite desde cualquier parte:
 
 - `from pulsar.logger import log` → `log.emit(JobLog(...))`. Tipos de log = clases
   **Pydantic** (`records.py`) con `KIND` (classvar) que mapea a un sink/tabla;
@@ -131,5 +132,6 @@ Servicio de logging reutilizable en `pulsar/logger/` (diseño y estado en
 ---
 
 Capacidades futuras y decisiones de mayor alcance (observabilidad, auditoría,
-trazabilidad, etc.): ver [`ROADMAP.md`](./ROADMAP.md) — se mantiene fuera de este
-archivo para no saturar el contexto que se carga cada sesión.
+trazabilidad, etc.): ver el [roadmap de Pulsar](../../codex/20-pulsar/roadmap/roadmap-pulsar.md)
+— se mantiene fuera de este archivo para no saturar el contexto que se carga
+cada sesión.

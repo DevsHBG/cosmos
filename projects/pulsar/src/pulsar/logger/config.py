@@ -2,7 +2,8 @@
 
 The operational store lives under ``db/logs/`` — deliberately separate from the
 business lakehouse (``lake/``): high-frequency, single-row inserts are OLTP and
-must never touch the analytical lake (see ``ROADMAP.md``). Operational SQLite
+must never touch the analytical lake (see ``codex/20-pulsar/roadmap/roadmap-pulsar.md``).
+Operational SQLite
 stores are grouped under ``db/<domain>/`` (logs here, runs in
 ``pulsar.jobs.runs``). Every value is overridable via ``PULSAR_LOGS_*`` env vars.
 """

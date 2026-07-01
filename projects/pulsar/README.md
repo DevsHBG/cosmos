@@ -42,6 +42,8 @@ pulsar/
 ├── .python-version       # 3.13
 ├── uv.lock               # lockfile reproducible
 ├── src/pulsar/           # código (src-layout)
-├── tests/                # tests
-└── docs/                 # estándares, arquitectura y ADRs (futuros)
+└── tests/                # tests
 ```
+
+Documentación (estándares, arquitectura, investigación, roadmap):
+[`codex/20-pulsar/moc-pulsar.md`](../../codex/20-pulsar/moc-pulsar.md).

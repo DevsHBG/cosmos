@@ -2,7 +2,7 @@
 
 **Central Retail Utility & eXecution**: el frontend principal de la suite. SPA que
 consume la API REST de [Pulsar](../pulsar) (FastAPI, `/v1`). Contexto completo en
-[`README.md`](./README.md); plan en [`ROADMAP.md`](./ROADMAP.md).
+[`README.md`](./README.md); plan en [el roadmap de Crux](../../codex/30-crux/roadmap/roadmap-crux.md).
 
 ## Stack y tooling
 
@@ -29,8 +29,8 @@ React 19 + TypeScript **strict** + **Vite** (SPA, sin SSR). UI con **shadcn/ui**
 ## Estándares
 
 Hereda los de nivel monorepo (`COSMOS-STD-*`, en
-[`../../docs/estandares/`](../../docs/estandares/README.md)). Los de nivel proyecto
-(`CRUX-STD-*`) están por definir (ver ROADMAP).
+[`codex/10-monorepo/moc-monorepo.md`](../../codex/10-monorepo/moc-monorepo.md)). Los de
+nivel proyecto (`CRUX-STD-*`) están por definir (ver el roadmap de Crux).
 
 ---
 

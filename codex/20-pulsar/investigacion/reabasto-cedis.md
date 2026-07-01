@@ -1,4 +1,19 @@
+---
+id: null
+type: research
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Cerrada
+alcance: "Single-echelon (CEDIS). Distribución CEDIS→tiendas = TODO futuro (multi-echelon)"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado: []
+tags: [demanda, reabasto, inventario]
+---
+
 # Prevención de quiebres en CEDIS — estado del arte y roadmap
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
 
 | | |
 | --- | --- |
@@ -280,7 +295,7 @@ de ABC, **auditable** (sin caja negra).
    sin el rodeo punto+safety stock.
 2. **Optimización de OTB** por categoría/temporada con lead times.
 3. **Multi-echelon (CEDIS→tiendas)** — el TODO diferido; la demanda de tienda
-   alimenta la del CEDIS (ver `ROADMAP.md`).
+   alimenta la del CEDIS (ver el [roadmap de Pulsar](../roadmap/roadmap-pulsar.md)).
 
 ## D. Qué NO hacer (anti-patrones confirmados)
 

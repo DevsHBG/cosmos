@@ -1,14 +1,29 @@
-# Pulsar — Roadmap y planes futuros
+---
+id: null
+type: roadmap
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Vigente
+alcance: "Proyecto pulsar"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado: []
+tags: []
+---
 
-Capacidades futuras, TODOs de mayor alcance y decisiones pendientes. Vive **fuera
-de `CLAUDE.md`** a propósito: ese archivo se carga en contexto cada sesión, así
-que solo lleva convenciones vigentes (lo que ES), no lo que viene.
+# Roadmap — Pulsar
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
+
+> No se carga por defecto — ver [`moc-pulsar`](../moc-pulsar.md) para lo que
+> rige hoy. Capacidades futuras, TODOs de mayor alcance y decisiones
+> pendientes.
 
 ## Observabilidad, auditoría y trazabilidad
 
 > Estado: **primera entrega implementada** (servicio de logging reutilizable,
-> fases 1–3 — ver abajo). Faltan la auditoría de acceso/identidad y el event
-> sourcing de negocio.
+> fases 1–3 — ver [`observabilidad.md`](../arquitectura/observabilidad.md)).
+> Faltan la auditoría de acceso/identidad y el event sourcing de negocio.
 
 Objetivo: logs de nivel empresarial de **todo**, en dos capas distintas:
 
@@ -26,7 +41,7 @@ acción de punta a punta.
 
 ### Primera entrega (✅ implementada): servicio de logging reutilizable
 
-**Diseño y estado: [`docs/observability.md`](./docs/observability.md).** Resumen:
+**Diseño y estado: [`observabilidad.md`](../arquitectura/observabilidad.md).** Resumen:
 
 - Un **servicio logger** reutilizable en toda la app (`from pulsar.logger import
   log`): tipos de log como clases extensibles (Pydantic + registry), sinks
@@ -41,9 +56,6 @@ acción de punta a punta.
   best-effort. Escribe en `db/logs/logs.sqlite`, **aparte** del lake. (El estado
   autoritativo de las corridas vive en el runs store, `db/runs/runs.sqlite`; ver la
   sección de la API más abajo.)
-
-Después: auditoría de **acceso/identidad** (quién, autorización) y **event
-sourcing de negocio** (ciclo de vida de OC, etc.).
 
 ### Storage — decisión confirmada: **SQLite**
 
@@ -63,7 +75,7 @@ reconstruye desde el último run terminal del runs store.
 ## API: alinear a estándar RESTful
 
 > Estado: **entregado** (alineación al estándar en
-> [`docs/arquitectura-restful.md`](./docs/arquitectura-restful.md) §18), incluido el
+> [`arquitectura-restful.md`](../arquitectura/arquitectura-restful.md) §18), incluido el
 > recurso `run` con ciclo de vida pollable e `Idempotency-Key`.
 
 Implementado:
@@ -99,7 +111,7 @@ de la primera entrega de observabilidad.
 ## Demanda y reabasto (prevención de quiebres en CEDIS)
 
 > Estado: **investigación cerrada** — estado del arte y roadmap por fases en
-> [`docs/reabasto-cedis-investigacion.md`](./docs/reabasto-cedis-investigacion.md).
+> [`reabasto-cedis.md`](../investigacion/reabasto-cedis.md).
 > Pendiente: implementar la Fase 1.
 
 Objetivo: evitar quiebres de inventario en **CEDIS ← proveedores** (single-echelon),

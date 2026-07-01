@@ -1,11 +1,26 @@
+---
+id: PULSAR-STD-001
+type: standard
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Vigente
+alcance: "Proyecto pulsar"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado: []
+tags: [pydantic, modelado]
+---
+
 # Modelado de datos y coherencia de tipos
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
 
 | | |
 | --- | --- |
 | **ID** | `PULSAR-STD-001` |
 | **Estado** | Vigente |
 | **Alcance** | Proyecto (`pulsar`) |
-| **Marco** | [Estándares de Pulsar](./README.md) — aplicación del principio de coherencia |
+| **Marco** | [Pulsar](../moc-pulsar.md) — aplicación del principio de coherencia |
 
 > **Resumen.** Toda estructura de datos de Pulsar —DTOs, registros, modelos de
 > dominio, configuración— se modela con **Pydantic v2** (`BaseModel` /
@@ -26,7 +41,7 @@ Ninguna de las dos es incorrecta en aislamiento, pero conviven sin razón: dos
 estilos para el mismo tipo de objeto obligan a quien lee a recordar cuál se usó
 dónde, complican la (de)serialización uniforme y abren la puerta a que cada nuevo
 módulo elija a dedo. Es justo la divergencia "inocente" que el
-[principio de coherencia](./README.md#principio-rector-coherencia) busca evitar.
+[principio de coherencia](../moc-pulsar.md#principio-rector-coherencia) busca evitar.
 
 El proyecto ya apuesta por Pydantic en sus fronteras: esquemas de la API
 (`api/schemas.py`), errores (`api/problem.py`), configuración (`config/settings.py`,

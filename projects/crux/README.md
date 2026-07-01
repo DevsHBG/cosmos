@@ -19,7 +19,7 @@ queda en el dashboard convencional. La dirección de producto:
   en el repo), no una caja negra.
 
 > Estado actual: **esqueleto**. Stack montado y librerías instaladas; aún sin vistas.
-> El plan de construcción vive en [`ROADMAP.md`](./ROADMAP.md).
+> El plan de construcción vive en [el roadmap de Crux](../../codex/30-crux/roadmap/roadmap-crux.md).
 
 ## Stack
 
@@ -60,7 +60,7 @@ src/
 ## Desarrollo
 
 Requiere **Node ≥ 20.19** y **pnpm** (estándar del monorepo,
-[`COSMOS-STD-001`](../../docs/estandares/gestor-de-paquetes.md)).
+[`COSMOS-STD-001`](../../codex/10-monorepo/estandares/cosmos-std-001-gestor-de-paquetes.md)).
 
 ```bash
 pnpm install        # instalar dependencias
@@ -79,4 +79,5 @@ Configuración local: copia [`.env.example`](./.env.example) a `.env` y ajusta
 
 CRUX hereda los estándares de nivel monorepo (`COSMOS-STD-*`) y tendrá los suyos de
 nivel proyecto (`CRUX-STD-*`) cuando los definamos. Marco de gobernanza:
-[`../../docs/estandares/`](../../docs/estandares/README.md).
+[`codex/10-monorepo/moc-monorepo.md`](../../codex/10-monorepo/moc-monorepo.md).
+Documentación completa del proyecto: [`codex/30-crux/moc-crux.md`](../../codex/30-crux/moc-crux.md).

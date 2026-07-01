@@ -3,7 +3,7 @@
 No HANA/lake is touched: read endpoints serve the in-memory registry and the SQLite
 log store (isolated per test by the conftest fixture); the trigger test enqueues a
 harmless fake job (not the real movement jobs). The surface under test is the v1
-RESTful API (``docs/arquitectura-restful.md`` §18).
+RESTful API (``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §18).
 """
 
 from __future__ import annotations

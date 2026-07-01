@@ -4,7 +4,7 @@ One collection over the three log tables (``job_logs``/``api_logs``/
 ``performance_logs``); ``type`` is the discriminator filter (omitted = all). Results
 are **keyset-paginated** by the total order ``(ts, type, rowid)``, so a growing time
 series paginates with stable, constant-cost cursors and no offset drift (see
-``docs/arquitectura-restful.md`` §10-11, §18.2).
+``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §10-11, §18.2).
 
 The cursor is an opaque base64 token wrapping that order key. Because the kinds live
 in separate tables, an "all types" query reads each relevant table past the cursor

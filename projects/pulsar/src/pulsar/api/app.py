@@ -2,7 +2,7 @@
 
 The scheduler is started/stopped in the app ``lifespan`` (single-process topology:
 API and scheduler share the process). The surface follows the Pulsar REST standard
-(``docs/arquitectura-restful.md`` §18): domain resources live under ``/v1``, errors
+(``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §18): domain resources live under ``/v1``, errors
 are RFC 9457 problem+json, and the three log kinds are one polymorphic collection
 (``GET /v1/logs?type=…``). ``/health`` stays unversioned (operational, not a domain
 resource).
@@ -33,7 +33,7 @@ from pulsar.logger.capture.http import LoggingMiddleware
 from pulsar.logger.capture.resources import PerformanceSampler
 from pulsar.logger.context import current_correlation_id
 
-#: Pagination bounds for every collection (``docs/arquitectura-restful.md`` §11).
+#: Pagination bounds for every collection (``codex/20-pulsar/arquitectura/arquitectura-restful.md`` §11).
 _DEFAULT_LIMIT = 100
 _MAX_LIMIT = 1000
 

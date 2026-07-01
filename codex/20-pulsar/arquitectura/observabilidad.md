@@ -1,8 +1,26 @@
+---
+id: null
+type: standard
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Vigente
+alcance: "Servicio de logging pulsar.logger (fases 1-3 implementadas; fase 4 pendiente)"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado:
+  - nota: "[[arquitectura-restful]]"
+    razon: "Implementa el patrón de recurso run (§12, §18.3) y la colección polimórfica de logs (§18.2) definidos en el estándar RESTful."
+tags: [observabilidad, logging]
+---
+
 # Servicio de logging (observabilidad) — diseño
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
 
 > **Estado: fases 1–3 implementadas** (core + captura + consulta unificada). Vive
 > fuera de `CLAUDE.md` a propósito (el contexto de cada sesión se mantiene lean).
-> Referenciado desde `ROADMAP.md`. La fase 4 (escalado) sigue pendiente.
+> Referenciado desde el [roadmap de Pulsar](../roadmap/roadmap-pulsar.md). La
+> fase 4 (escalado) sigue pendiente.
 >
 > **Nota de naming**: el paquete es **`pulsar.logger`** (no `observability`); el
 > almacén operativo es **`db/logs/logs.sqlite`** (no `ops.sqlite`). Los stores
@@ -197,8 +215,8 @@ WHERE p.rss_mb > 4000;
   server y capturar el instante del crash.
 - **Backpressure**: si la cola se llena, drop con contador (nunca bloquear).
 - **Endpoints de consulta** en el API: ya implementados como una sola colección
-  polimórfica `GET /v1/logs?type=job|api|performance` (estándar RESTful,
-  [`arquitectura-restful.md`](./arquitectura-restful.md) §18.2).
+  polimórfica `GET /v1/logs?type=job|api|performance` (estándar RESTful, ver
+  `## Relacionado` abajo).
 
 ## Plan de implementación (por fases)
 
@@ -210,10 +228,14 @@ WHERE p.rss_mb > 4000;
    el `lifespan` del API. + tests.
 3. ✅ **Consulta unificada** — `query()` + `connect_duckdb()`; endpoint de
    lectura unificado `GET /v1/logs?type=job|api|performance` (colección polimórfica
-   RESTful, ver `arquitectura-restful.md` §18.2). + tests.
+   RESTful, ver `## Relacionado` abajo). + tests.
 4. ⏳ **Escalado (futuro, no ahora)** — FileSink/ParquetSink, retención, redacción,
    sampling, colector externo.
 
 `db/logs/logs.sqlite` siempre **aparte** del lake de negocio. `psutil` se añadió como
 dependencia en la fase 2.
 
+## Relacionado
+
+- [`arquitectura-restful.md`](./arquitectura-restful.md) §12, §18.2, §18.3 — el
+  estándar RESTful que este servicio (recurso `run`, colección de logs) implementa.

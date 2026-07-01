@@ -1,13 +1,36 @@
+---
+id: null
+type: standard
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Vigente
+alcance: "API de Pulsar (§18 es la sección normativa; §1-17 son guía de referencia general sobre REST)"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado:
+  - nota: "[[observabilidad]]"
+    razon: "El recurso run (§12, §18.3) depende directamente de la decisión de almacenamiento del runs store/logger."
+tags: [api, rest]
+---
+
 # Arquitectura RESTful — guía y estándar de Pulsar
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
 
 > Documento de referencia + **estándar normativo** para la API de Pulsar. La
 > primera mitad explica REST "de verdad" (qué es, de dónde sale, las reglas que
 > importan); la segunda fija las **convenciones que la API de Pulsar DEBE seguir**.
 > El refactor de los endpoints actuales a este estándar es un paso aparte (ver
-> [`ROADMAP.md`](../ROADMAP.md)).
+> [roadmap de Pulsar](../roadmap/roadmap-pulsar.md)).
 >
 > Convención de palabras clave (estilo RFC 2119): **DEBE** = obligatorio,
 > **DEBERÍA** = recomendado salvo buena razón, **PUEDE** = opcional.
+>
+> Nota de tamaño (ver [`CODEX-STD-001`](../../00-vault/codex-std-001-estandar-del-codex.md)
+> R7): este documento (494 líneas) excede la guía de tamaño de una nota hoja.
+> Se migró entero sin dividir (Fase 1, riesgo bajo); separar §1–17 (REST
+> genérico) de §18 (el estándar normativo de Pulsar) es una Fase 2 deliberada,
+> ver `## Estado actual` en `CODEX-STD-001`.
 
 ## Índice
 
@@ -255,8 +278,9 @@ Ejemplo (estilo Pulsar):
 }
 ```
 
-`correlation_id` como extension member enlaza el error con el log (§ observabilidad
-en [`observability.md`](./observability.md)).
+`correlation_id` como extension member enlaza el error con el log de
+observabilidad correspondiente (ver `## Relacionado` al final de este
+documento).
 
 ---
 
@@ -402,7 +426,7 @@ inicio (barato ahora, caro de retrofitear).
   `422`).
 
 (Hoy la API de Pulsar es de un solo proceso/red interna; la auth de identidad es una
-entrega futura — ver `ROADMAP.md` §auditoría.)
+entrega futura — ver el roadmap de Pulsar, sección de auditoría.)
 
 ---
 
@@ -419,7 +443,7 @@ codes). Documentar también los **errores** (`responses=`) con el modelo Problem
 ## 18. Estándar Pulsar (normativo)
 
 Reglas que la API de Pulsar **DEBE** seguir. (El refactor de los endpoints actuales
-para cumplirlas es un paso aparte; ver `ROADMAP.md`.)
+para cumplirlas es un paso aparte; ver el [roadmap de Pulsar](../roadmap/roadmap-pulsar.md).)
 
 ### 18.1 Convenciones generales
 
@@ -492,3 +516,11 @@ GET    /v1/jobs/{name}/runs/{id}     # estado/resultado de una corrida
 - Zalando — *RESTful API and Event Guidelines* — <https://opensource.zalando.com/restful-api-guidelines/>
 - JSON:API — *especificación (filtros, sort, fields, paginación)* — <https://jsonapi.org/>
 - HATEOAS — <https://en.wikipedia.org/wiki/HATEOAS>
+
+---
+
+## Relacionado
+
+- [`observabilidad.md`](./observabilidad.md) — el recurso `run` (§12, §18.3) y el
+  `correlation_id` de Problem Details (§9) dependen directamente del diseño del
+  runs store y del logger descritos ahí.

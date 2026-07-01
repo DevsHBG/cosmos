@@ -1,4 +1,19 @@
+---
+id: null
+type: reference
+project: pulsar
+parent: "[[moc-pulsar]]"
+status: Vigente
+alcance: "Tabla inventory.movements del lakehouse"
+created: 2026-06-30
+updated: 2026-06-30
+relacionado: []
+tags: [datos, sap]
+---
+
 # Diccionario de datos — `inventory.movements`
+
+↑ Pertenece a: [Pulsar](../moc-pulsar.md)
 
 | | |
 | --- | --- |

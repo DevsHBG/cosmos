@@ -42,7 +42,7 @@ MOVEMENT_COLUMNS: tuple[str, ...] = (
 
 # ``trans_type`` carries the SAP B1 document object-type (``OINM.TransType``); the
 # meaning of each code (and the ``trans_value`` sign convention) is documented in
-# ``docs/diccionario-datos.md``.
+# ``codex/20-pulsar/referencia/diccionario-datos-inventory-movements.md``.
 # TODO(trans_type): promote that reference table to a ``TransType(IntEnum)`` once a
 # consumer needs to classify movements by document type. Kept as docs-only for now
 # to avoid dead code (YAGNI / PULSAR-STD-001).
